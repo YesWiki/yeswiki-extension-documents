@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<plugin name="wkdocuments" version="0.1" active="1">
+  <author>Leo Kontente</author>
+  <author>Florian Schmitt</author>
+  <label>Documents</label>
+  <desc>Permet de créer des documents collaboratifs à partir d'une fiche bazar.</desc>
+</plugin>
