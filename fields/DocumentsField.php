@@ -1,5 +1,5 @@
 <?php
-namespace YesWiki\Custom\Field;
+namespace YesWiki\Documents\Field;
 
 use YesWiki\Bazar\Field\BazarField;
 use Psr\Container\ContainerInterface;
