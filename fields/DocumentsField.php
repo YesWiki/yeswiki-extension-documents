@@ -6,6 +6,8 @@ use YesWiki\Bazar\Field\BazarField;
 use Psr\Container\ContainerInterface;
 
 use function Symfony\Component\String\u;
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 
 /**
  * @Field({"documents"})
@@ -64,17 +66,26 @@ class DocumentsField extends BazarField
                     'label' => $value['label'],
                     'description' => $value['description'],
                     'url' => $value['url'],
+                    'iframe' => $value['iframe'] ?? false, // S'assurer que iframe est toujours défini
                     'need-credentials' => $value['need-credentials'] ?? false
                 ];
             } else {
                 die("Invalid configuration for document type '$key'. Expected an array with 'label', 'description', and 'url'.");
             }
         }
-        dump($this->getWiki()->getConfigValue('documentsCredentials'));
+        // dump($this->getWiki()->getConfigValue('documentsCredentials')); // Garder pour le débogage si besoin
         foreach ($result as $key => $value) {
-            if ($value['need-credentials'] && empty($this->getWiki()->getConfigValue('documentsCredentials')[$key])) {
-                die("Missing configuration for document type '$key'. Expected credentials array in the configuration config['documentsCredentials']['$key'].");
-
+            if ($value['need-credentials']) {
+                $credentials = $this->getWiki()->getConfigValue('documentsCredentials')[$key] ?? null;
+                if (empty($credentials)) {
+                    die("Missing configuration for document type '$key'. Expected not empty value in the configuration config['documentsCredentials']['$key'].");
+                }
+                // Vous pouvez ajouter d'autres vérifications si d'autres credentials sont nécessaires pour OnlyOffice.
+                // Par exemple, si vous avez besoin d'une 'default_document_url'
+                if ($key === 'onlyoffice-doc' && !isset($credentials['default_document_url'])) {
+                    // C'est un exemple, si vous voulez que OnlyOffice ouvre un document par défaut au lieu de créer un blanc
+                    // Ou vous pouvez gérer la création d'un document vierge directement.
+                }
             }
         }
         return $result;
@@ -110,15 +121,56 @@ class DocumentsField extends BazarField
     protected function renderStatic($entry)
     {
         $documentUrl = $entry['bf_document_url'] ?? '';
+        $documentTypeKey = $entry['bf_documents'] ?? null;
+
         if (empty($documentUrl)) {
             return "Aucune URL générée";
         }
+
         $output = '';
-        if ($this->documentType[$entry['bf_documents']]["iframe"] === true) {
+        
+        if ($documentTypeKey == 'onlyoffice-doc') {
+            $doc = pathinfo($documentUrl);
+            $config = [
+                'document' => [
+                    "fileType" => $doc['extension'],
+                    "key" => $doc['filename'],
+                    "title" => $doc['basename'],
+                    "url" => $documentUrl,
+                ],
+                'documentType' => 'word',
+                'height' => '800px',
+                'width' => '100%',
+            ];
+            dump($documentUrl);
+            $jwt = JWT::encode($config, $this->getWiki()->getConfigValue('documentsCredentials')[$documentTypeKey], 'HS256');
+            $output .= <<<HTML
+<div id="onlyoffice-doc"></div>
+<script type="text/javascript" src="{$this->documentType[$documentTypeKey]['url']}/web-apps/apps/api/documents/api.js"></script>
+<script>
+const config = {
+  document: {
+    fileType: "{$doc['extension']}",
+    key: "{$doc['filename']}",
+    title: "{$doc['basename']}",
+    url: "{$documentUrl}",
+  },
+  documentType: "word",
+  height: "1500px",
+  width: "100%",
+  token: "$jwt"
+};
+
+console.log("Generated JWT:", config.token);
+const docEditor = new DocsAPI.DocEditor("onlyoffice-doc", config);
+
+</script>
+HTML;
+        } else if ($this->documentType[$entry['bf_documents']]["iframe"] === true) {
             $output .= "<iframe src='{$documentUrl}' style='width: 100%; height: 1000px; border: none;'></iframe>";
         }
 
-        return $output . '<a class="btn btn-primary" href="' . $documentUrl . '" target="_blank">Ouvrir le document dans une nouvelle fenêtre</a><br>';
+        return $output;
     }
 
 
@@ -167,6 +219,12 @@ class DocumentsField extends BazarField
                     } else {
                         die("Erreur cURL lors de la récupération de l'URL HedgeDoc. url: {$baseUrl}/new");
                     }
+                    break;
+                case 'onlyoffice-doc':
+                    $generatedFileName = "files/{$slug}-{$uniqueId}.docx";
+                    copy ('tools/documents/assets/model.docx', $generatedFileName);
+                    $generatedUrl = "{$this->getWiki()->getConfigValue("base_url")}";
+                    $generatedUrl = str_replace('/?', "/{$generatedFileName}", $generatedUrl);
                     break;
                 default:
                     $generatedUrl = "{$baseUrl}/doc/{$slug}-{$uniqueId}";
