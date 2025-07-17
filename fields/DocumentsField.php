@@ -1,10 +1,11 @@
 <?php
+
 namespace YesWiki\Documents\Field;
 
 use YesWiki\Bazar\Field\BazarField;
 use Psr\Container\ContainerInterface;
-use function Symfony\Component\String\u;
 
+use function Symfony\Component\String\u;
 
 /**
  * @Field({"documents"})
@@ -29,7 +30,16 @@ class DocumentsField extends BazarField
             'description' => 'Un editeur de markdown collaboratif',
             'url' => 'https://md.yeswiki.net',
             'iframe' => false,
+        ],
+        'onlyoffice-doc' => [
+            'label' => 'Docx Only-office',
+            'description' => 'Document docx Only-office',
+            'url' => 'https://onlyoffice.yeswiki.net',
+            'iframe' => false,
+            'need-credentials' => true
+
         ]
+
     ];
 
     protected $documentType = [];
@@ -41,7 +51,7 @@ class DocumentsField extends BazarField
         if (isset($conf) && is_array($conf)) {
             $this->documentType = $this->parseConfig($conf);
         } else {
-            $this->documentType = self::DOCUMENT_TYPE_DEFAULTS;
+            $this->documentType = $this->parseConfig(self::DOCUMENT_TYPE_DEFAULTS);
         }
     }
 
@@ -53,10 +63,18 @@ class DocumentsField extends BazarField
                 $result[$key] = [
                     'label' => $value['label'],
                     'description' => $value['description'],
-                    'url' => $value['url']
+                    'url' => $value['url'],
+                    'need-credentials' => $value['need-credentials'] ?? false
                 ];
             } else {
                 die("Invalid configuration for document type '$key'. Expected an array with 'label', 'description', and 'url'.");
+            }
+        }
+        dump($this->getWiki()->getConfigValue('documentsCredentials'));
+        foreach ($result as $key => $value) {
+            if ($value['need-credentials'] && empty($this->getWiki()->getConfigValue('documentsCredentials')[$key])) {
+                die("Missing configuration for document type '$key'. Expected credentials array in the configuration config['documentsCredentials']['$key'].");
+
             }
         }
         return $result;
@@ -172,3 +190,4 @@ class DocumentsField extends BazarField
         );
     }
 }
+
