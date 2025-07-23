@@ -4,10 +4,9 @@ namespace YesWiki\Documents\Field;
 
 use YesWiki\Bazar\Field\BazarField;
 use Psr\Container\ContainerInterface;
+use Firebase\JWT\JWT;
 
 use function Symfony\Component\String\u;
-use Firebase\JWT\JWT;
-use Firebase\JWT\Key;
 
 /**
  * @Field({"documents"})
@@ -128,45 +127,46 @@ class DocumentsField extends BazarField
         }
 
         $output = '';
-        
+
         if ($documentTypeKey == 'onlyoffice-doc') {
             $doc = pathinfo($documentUrl);
+            //$doc['filename'] = "Khirz6zTPdfd7";
             $config = [
-                'document' => [
-                    "fileType" => $doc['extension'],
-                    "key" => $doc['filename'],
-                    "title" => $doc['basename'],
-                    "url" => $documentUrl,
-                ],
-                'documentType' => 'word',
-                'height' => '800px',
-                'width' => '100%',
-            ];
-            dump($documentUrl);
-            $jwt = JWT::encode($config, $this->getWiki()->getConfigValue('documentsCredentials')[$documentTypeKey], 'HS256');
+                      'document' => [
+                          "fileType" => $doc['extension'],
+                          "key" => $doc['filename'],
+                          "title" => $doc['basename'],
+                          "url" => $documentUrl,
+                      ],
+                      'editorConfig' => [
+                          //'callbackUrl' => $this->getWiki()->href('onlyoffice', '', 'filename='.$doc['basename'], false),
+                          "user" => [
+                            "id" => $this->getWiki()->GetUsername(),
+                            "name" => $this->getWiki()->GetUsername(),
+                          ],
+                          "customization" => [
+                              "features" => [
+                                  "featuresTips" => false
+                              ]
+                          ],
+                          "lang" => "fr"
+                      ],
+                      'documentType' => 'word',
+                      'height' => '1000px',
+                      'width' => '100%',
+                  ];
+            $config['token'] = JWT::encode($config, $this->getWiki()->getConfigValue('documentsCredentials')[$documentTypeKey], 'HS256');
+            $jsconfig = json_encode($config);
             $output .= <<<HTML
 <div id="onlyoffice-doc"></div>
 <script type="text/javascript" src="{$this->documentType[$documentTypeKey]['url']}/web-apps/apps/api/documents/api.js"></script>
 <script>
-const config = {
-  document: {
-    fileType: "{$doc['extension']}",
-    key: "{$doc['filename']}",
-    title: "{$doc['basename']}",
-    url: "{$documentUrl}",
-  },
-  documentType: "word",
-  height: "1500px",
-  width: "100%",
-  token: "$jwt"
-};
-
-console.log("Generated JWT:", config.token);
+const config = {$jsconfig};
 const docEditor = new DocsAPI.DocEditor("onlyoffice-doc", config);
 
 </script>
 HTML;
-        } else if ($this->documentType[$entry['bf_documents']]["iframe"] === true) {
+        } elseif ($this->documentType[$entry['bf_documents']]["iframe"] === true) {
             $output .= "<iframe src='{$documentUrl}' style='width: 100%; height: 1000px; border: none;'></iframe>";
         }
 
@@ -222,7 +222,7 @@ HTML;
                     break;
                 case 'onlyoffice-doc':
                     $generatedFileName = "files/{$slug}-{$uniqueId}.docx";
-                    copy ('tools/documents/assets/model.docx', $generatedFileName);
+                    copy('tools/documents/assets/model.docx', $generatedFileName);
                     $generatedUrl = "{$this->getWiki()->getConfigValue("base_url")}";
                     $generatedUrl = str_replace('/?', "/{$generatedFileName}", $generatedUrl);
                     break;
@@ -243,9 +243,7 @@ HTML;
         return array_merge(
             parent::jsonSerialize(),
             [
-                'reservation_button' => '<a class="btn btn-primary" href="#"><i class="fa fa-plus"></i>&nbsp;Je profite de ce trajet</a>'
             ]
         );
     }
 }
-
