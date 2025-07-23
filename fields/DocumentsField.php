@@ -130,7 +130,6 @@ class DocumentsField extends BazarField
 
         if ($documentTypeKey == 'onlyoffice-doc') {
             $doc = pathinfo($documentUrl);
-            //$doc['filename'] = "Khirz6zTPdfd7";
             $config = [
                       'document' => [
                           "fileType" => $doc['extension'],
@@ -139,7 +138,7 @@ class DocumentsField extends BazarField
                           "url" => $documentUrl,
                       ],
                       'editorConfig' => [
-                          //'callbackUrl' => $this->getWiki()->href('onlyoffice', '', 'filename='.$doc['basename'], false),
+                          'callbackUrl' => $this->getWiki()->href('onlyoffice', '', 'filename='.$doc['basename'], false),
                           "user" => [
                             "id" => $this->getWiki()->GetUsername(),
                             "name" => $this->getWiki()->GetUsername(),
