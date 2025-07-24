@@ -3,8 +3,8 @@
 namespace YesWiki\Documents\Field;
 
 use YesWiki\Bazar\Field\BazarField;
+use YesWiki\Documents\Service\DocumentsService;
 use Psr\Container\ContainerInterface;
-use Firebase\JWT\JWT;
 
 use function Symfony\Component\String\u;
 
@@ -13,81 +13,14 @@ use function Symfony\Component\String\u;
  */
 class DocumentsField extends BazarField
 {
-    protected const DOCUMENT_TYPE_DEFAULTS = [
-        'etherpad' => [
-            'label' => 'Etherpad',
-            'description' => 'Un document collaboratif simple',
-            'url' => 'https://pad.yeswiki.net/',
-            'iframe' => true,
-        ],
-        'memo' => [
-            'label' => 'Memo',
-            'description' => 'Un tableau de post-it collaboratif',
-            'url' => 'https://memo.yeswiki.pro/',
-            'iframe' => false,
-        ],
-        'hedgedoc' => [
-            'label' => 'HedgeDoc',
-            'description' => 'Un editeur de markdown collaboratif',
-            'url' => 'https://md.yeswiki.net',
-            'iframe' => false,
-        ],
-        'onlyoffice-doc' => [
-            'label' => 'Docx Only-office',
-            'description' => 'Document docx Only-office',
-            'url' => 'https://onlyoffice.yeswiki.net',
-            'iframe' => false,
-            'need-credentials' => true
-
-        ]
-
-    ];
-
-    protected $documentType = [];
+    protected $service = [];
+    protected $documentsType = [];
 
     public function __construct(array $values, ContainerInterface $services)
     {
         parent::__construct($values, $services);
-        $conf = $this->getWiki()->getConfigValue("documentType");
-        if (isset($conf) && is_array($conf)) {
-            $this->documentType = $this->parseConfig($conf);
-        } else {
-            $this->documentType = $this->parseConfig(self::DOCUMENT_TYPE_DEFAULTS);
-        }
-    }
-
-    protected function parseConfig($config)
-    {
-        $result = [];
-        foreach ($config as $key => $value) {
-            if (is_array($value) && isset($value['label'], $value['description'], $value['url'])) {
-                $result[$key] = [
-                    'label' => $value['label'],
-                    'description' => $value['description'],
-                    'url' => $value['url'],
-                    'iframe' => $value['iframe'] ?? false, // S'assurer que iframe est toujours défini
-                    'need-credentials' => $value['need-credentials'] ?? false
-                ];
-            } else {
-                die("Invalid configuration for document type '$key'. Expected an array with 'label', 'description', and 'url'.");
-            }
-        }
-        // dump($this->getWiki()->getConfigValue('documentsCredentials')); // Garder pour le débogage si besoin
-        foreach ($result as $key => $value) {
-            if ($value['need-credentials']) {
-                $credentials = $this->getWiki()->getConfigValue('documentsCredentials')[$key] ?? null;
-                if (empty($credentials)) {
-                    die("Missing configuration for document type '$key'. Expected not empty value in the configuration config['documentsCredentials']['$key'].");
-                }
-                // Vous pouvez ajouter d'autres vérifications si d'autres credentials sont nécessaires pour OnlyOffice.
-                // Par exemple, si vous avez besoin d'une 'default_document_url'
-                if ($key === 'onlyoffice-doc' && !isset($credentials['default_document_url'])) {
-                    // C'est un exemple, si vous voulez que OnlyOffice ouvre un document par défaut au lieu de créer un blanc
-                    // Ou vous pouvez gérer la création d'un document vierge directement.
-                }
-            }
-        }
-        return $result;
+        $this->service = $this->getService(DocumentsService::class);
+        $this->documentsType = $this->getWiki()->getConfigValue('documentsType');
     }
 
     protected function renderInput($entry)
@@ -106,7 +39,7 @@ class DocumentsField extends BazarField
             ";
         }
         $options = [];
-        foreach ($this->documentType as $key => $type) {
+        foreach ($this->documentsType as $key => $type) {
             $options[$key] = "<h4>{$type['label']} <small> {$type['url']} </small> </h4>
                                      <p>{$type['description']}</p>";
         }
@@ -119,57 +52,10 @@ class DocumentsField extends BazarField
 
     protected function renderStatic($entry)
     {
-        $documentUrl = $entry['bf_document_url'] ?? '';
-        $documentTypeKey = $entry['bf_documents'] ?? null;
-
-        if (empty($documentUrl)) {
-            return "Aucune URL générée";
-        }
-
-        $output = '';
-
-        if ($documentTypeKey == 'onlyoffice-doc') {
-            $doc = pathinfo($documentUrl);
-            $config = [
-                      'document' => [
-                          "fileType" => $doc['extension'],
-                          "key" => $doc['filename'],
-                          "title" => $doc['basename'],
-                          "url" => $documentUrl,
-                      ],
-                      'editorConfig' => [
-                          'callbackUrl' => $this->getWiki()->href('onlyoffice', '', 'filename='.$doc['basename'], false),
-                          "user" => [
-                            "id" => $this->getWiki()->GetUsername(),
-                            "name" => $this->getWiki()->GetUsername(),
-                          ],
-                          "customization" => [
-                              "features" => [
-                                  "featuresTips" => false
-                              ]
-                          ],
-                          "lang" => "fr"
-                      ],
-                      'documentType' => 'word',
-                      'height' => '1000px',
-                      'width' => '100%',
-                  ];
-            $config['token'] = JWT::encode($config, $this->getWiki()->getConfigValue('documentsCredentials')[$documentTypeKey], 'HS256');
-            $jsconfig = json_encode($config);
-            $output .= <<<HTML
-<div id="onlyoffice-doc"></div>
-<script type="text/javascript" src="{$this->documentType[$documentTypeKey]['url']}/web-apps/apps/api/documents/api.js"></script>
-<script>
-const config = {$jsconfig};
-const docEditor = new DocsAPI.DocEditor("onlyoffice-doc", config);
-
-</script>
-HTML;
-        } elseif ($this->documentType[$entry['bf_documents']]["iframe"] === true) {
-            $output .= "<iframe src='{$documentUrl}' style='width: 100%; height: 1000px; border: none;'></iframe>";
-        }
-
-        return $output;
+        return $this->service->showDocument(
+            $this->documentsType[$entry['bf_documents']] ?? null,
+            $entry['bf_document_url'] ?? null
+        );
     }
 
 
@@ -183,8 +69,8 @@ HTML;
             return $entry;
         }
 
-        if ($documentTypeKey && isset($this->documentType[$documentTypeKey])) {
-            $baseUrl = rtrim($this->documentType[$documentTypeKey]['url'], '/');
+        if ($documentTypeKey && isset($this->documentsType[$documentTypeKey])) {
+            $baseUrl = rtrim($this->documentsType[$documentTypeKey]['url'], '/');
 
             $slug = (string) u($title)
                 ->ascii()

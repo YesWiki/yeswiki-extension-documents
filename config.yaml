@@ -1,0 +1,14 @@
+parameters:
+  bazar_document_id: 1500
+  # for edit config action
+  documents_editable_config_params:
+    - 'bazar_document_id'
+    
+services:
+  _defaults:
+    autowire: true
+    public: true
+
+  YesWiki\Documents\Service\:
+    resource: 'services/*'
+
