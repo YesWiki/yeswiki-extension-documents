@@ -45,7 +45,7 @@ class DocumentAction extends YesWikiAction
             if (!empty($entry) && !empty($entry['bf_document_url'])) {
                 return $service->showDocument(
                     $this->wiki->config['documentsType'][$entry['bf_documents']],
-                    $entry['bf_document_url']
+                    $entry
                 );
             } else {
                 return('<div class="alert alert-danger">Action document: la fiche '.$this->arguments['id'].' ne semble pas exister ou ne contient pas de document.</div>');
@@ -70,4 +70,3 @@ class DocumentAction extends YesWikiAction
         return '';
     }
 }
-

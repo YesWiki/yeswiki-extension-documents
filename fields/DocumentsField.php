@@ -41,7 +41,7 @@ class DocumentsField extends BazarField
         $options = [];
         foreach ($this->documentsType as $key => $type) {
             $options[$key] = "<h4>{$type['label']} <small> {$type['url']} </small> </h4>
-                                     <p>{$type['description']}</p>";
+                                    <p>{$type['description']}</p>";
         }
         return $this->render('@bazar/inputs/radio.twig', [
             'options' => $options,
@@ -54,7 +54,7 @@ class DocumentsField extends BazarField
     {
         return $this->service->showDocument(
             $this->documentsType[$entry['bf_documents']] ?? null,
-            $entry['bf_document_url'] ?? null
+            $entry ?? null
         );
     }
 

@@ -10,21 +10,21 @@ class DocumentsService
 {
     protected $wiki;
     protected const DOCUMENTS_TYPE_DEFAULT = [
-    'etherpad' => [
+        'etherpad' => [
             'service' => 'etherpad',
             'label' => 'Etherpad',
             'description' => 'Un document collaboratif simple',
             'url' => 'https://pad.yeswiki.net/',
             'iframe' => true,
         ],
-    'memo' => [
+        'memo' => [
             'service' => 'memo',
             'label' => 'Memo',
             'description' => 'Un tableau de post-it collaboratif',
             'url' => 'https://memo.yeswiki.pro/',
             'iframe' => false,
         ],
-    'hedgedoc' => [
+        'hedgedoc' => [
             'service' => 'hedgedoc',
             'label' => 'HedgeDoc',
             'description' => 'Un editeur de markdown collaboratif',
@@ -32,12 +32,12 @@ class DocumentsService
             'iframe' => false,
         ],
         /* 'onlyoffice-doc' => [ */
-        /*     'service' => 'onlyoffice', */
-        /*     'label' => 'Docx Only-office', */
-        /*     'description' => 'Document docx Only-office', */
-        /*     'url' => 'https://onlyoffice.yeswiki.net', */
-        /*     'iframe' => false, */
-        /*     'need-credentials' => true */
+        /* 'service' => 'onlyoffice', */
+        /* 'label' => 'Docx Only-office', */
+        /* 'description' => 'Document docx Only-office', */
+        /* 'url' => 'https://onlyoffice.yeswiki.net', */
+        /* 'iframe' => false, */
+        /* 'need-credentials' => true */
         /* ] */
 
     ];
@@ -81,8 +81,9 @@ class DocumentsService
         $this->wiki->config['documentsType'] = $result;
     }
 
-    public function showDocument($docConfig, $documentUrl)
+    public function showDocument($docConfig, array $entry = [])
     {
+        $documentUrl = $entry['bf_document_url'] ?? null;
         if (empty($documentUrl)) {
             return "Aucune URL générée";
         }
@@ -91,29 +92,29 @@ class DocumentsService
         if ($docConfig['service'] == 'onlyoffice') {
             $doc = pathinfo($documentUrl);
             $config = [
-                      'document' => [
-                          "fileType" => $doc['extension'],
-                          "key" => $doc['filename'],
-                          "title" => $doc['basename'],
-                          "url" => $documentUrl,
-                      ],
-                      'editorConfig' => [
-                          'callbackUrl' => $this->getWiki()->href('onlyoffice', '', 'filename='.$doc['basename'], false),
-                          "user" => [
-                            "id" => $this->getWiki()->GetUsername(),
-                            "name" => $this->getWiki()->GetUsername(),
-                          ],
-                          "customization" => [
-                              "features" => [
-                                  "featuresTips" => false
-                              ]
-                          ],
-                          "lang" => "fr"
-                      ],
-                      'documentType' => 'word',
-                      'height' => '1000px',
-                      'width' => '100%',
-                  ];
+                        'document' => [
+                            "fileType" => $doc['extension'],
+                            "key" => $doc['filename'],
+                            "title" => $doc['basename'],
+                            "url" => $documentUrl,
+                        ],
+                        'editorConfig' => [
+                            'callbackUrl' => $this->getWiki()->href('onlyoffice', '', 'filename='.$doc['basename'], false),
+                            "user" => [
+                                "id" => $this->getWiki()->GetUsername(),
+                                "name" => $this->getWiki()->GetUsername(),
+                            ],
+                            "customization" => [
+                                "features" => [
+                                    "featuresTips" => false
+                                ]
+                            ],
+                            "lang" => "fr"
+                        ],
+                        'documentType' => 'word',
+                        'height' => '1000px',
+                        'width' => '100%',
+                    ];
             $config['token'] = JWT::encode($config, $this->getWiki()->getConfigValue('documentsCredentials')[$documentTypeKey], 'HS256');
             $jsconfig = json_encode($config);
             $output .= <<<HTML
@@ -126,10 +127,15 @@ const docEditor = new DocsAPI.DocEditor("onlyoffice-doc", config);
 </script>
 HTML;
         } else {
+            $titre = $entry['bf_titre'] ?? 'Titre inconnu';
+            $statut = $entry['bf_statut'] ?? 'Statut inconnu';
             if ($docConfig['iframe'] === true) {
                 $output .= "<iframe src='{$documentUrl}' style='width: 100%; height: 1000px; border: none;'></iframe>";
+                $baseUrl = rtrim($this->wiki->getConfigValue('base_url'), '/');
+                $editLink = "{$baseUrl}{$entry['id_fiche']}/edit";
+                $output .= "<small><b>{$docConfig['label']} dans la page {$titre}</b> (Statut: {$statut}) <a target='_blank' href='{$editLink}'>Modifier</a></small>";
             } else {
-                $output .= '<a target="_blank" href="'.$documentUrl.'">Voir le document</a>';
+                $output .= "<small><b>{$docConfig['label']} dans la page {$titre}</b> (Statut: {$statut}) <a target='_blank' href='{$documentUrl}'>Modifier</a></small>";
             }
         }
         return $output;
