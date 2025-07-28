@@ -1,8 +1,8 @@
 parameters:
-  bazar_document_id: 1500
+  documentsFormId: 1500
   # for edit config action
   documents_editable_config_params:
-    - 'bazar_document_id'
+    - 'documentsFormId'
     
 services:
   _defaults:

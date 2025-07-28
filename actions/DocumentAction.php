@@ -22,6 +22,9 @@ class DocumentAction extends YesWikiAction
      */
     public function formatArguments($arg): array
     {
+        if (empty($arg['formId'])) {
+            $arg['formId'] = $this->wiki->getConfigValue('documentsFormId');
+        }
         return $arg;
     }
 
@@ -48,7 +51,7 @@ class DocumentAction extends YesWikiAction
                 return('<div class="alert alert-danger">Action document: la fiche '.$this->arguments['id'].' ne semble pas exister ou ne contient pas de document.</div>');
             }
         } else {
-            $formId = '5';        // TODO : utiliser la valeur génériqueS
+            $formId = $this->arguments['formId'];
             $entry = $entryManager->create($formId, [
               'bf_titre' => 'Doc '.$this->arguments['type'].' dans la page '.$this->wiki->getPageTag(),
               'id_typeannonce' => $formId,
@@ -58,7 +61,7 @@ class DocumentAction extends YesWikiAction
             ]);
             // we collect the page content and replace the action with no id
             $currentPage = $pageManager->getOne($this->wiki->getPageTag());
-            $re = '/\{\{document(?!.*id="[^"]+").*\}\}/mU';
+            $re = '/\{\{document(?!.*id="[^"]+").*\}\}/mUi';
             $subst = '{{document type="'.$this->arguments['type'].'" id="'.$entry['id_fiche'].'"}}';
             $body = preg_replace($re, $subst, $currentPage['body'], 1);
             $pageManager->save($this->wiki->getPageTag(), $body);

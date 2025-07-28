@@ -72,7 +72,7 @@ class DocumentsService
         // dump($this->getWiki()->getConfigValue('documentsCredentials')); // Garder pour le débogage si besoin
         foreach ($result as $key => $value) {
             if ($value['need-credentials']) {
-                $credentials = $this->getWiki()->getConfigValue('documentsCredentials')[$key] ?? null;
+                $credentials = $this->wiki->config['documentsCredentials'][$key] ?? null;
                 if (empty($credentials)) {
                     die("Missing configuration for document type '$key'. Expected not empty value in the configuration config['documentsCredentials']['$key'].");
                 }
