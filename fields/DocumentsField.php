@@ -28,7 +28,7 @@ class DocumentsField extends BazarField
         if (!empty($entry['bf_document_url'])) {
             return "
                 <div class='control-group form-group input-text input text'>
-                    <label class='control-label col-sm-3'>Lien d'accès au document</label>
+                    <label class='control-label col-sm-3'>" . _t('DOCUMENTS_LINK_ACCESS') . "</label>
                     <div class='controls col-sm-9'>
                         <div class='input-group'>
                             <input class='form-control input-xxlarge' name='bf_document_url' value={$entry['bf_document_url']} readonly />
@@ -102,7 +102,7 @@ class DocumentsField extends BazarField
                     if ($finalUrl) {
                         $generatedUrl = $finalUrl;
                     } else {
-                        die("Erreur cURL lors de la récupération de l'URL HedgeDoc. url: {$baseUrl}/new");
+                        die(_t('DOCUMENTS_CURL_ERROR', "{$baseUrl}/new"));
                     }
                     break;
                 case 'onlyoffice-doc':

@@ -35,10 +35,10 @@ class DocumentAction extends YesWikiAction
         $pageManager = $this->getService(PageManager::class);
         $availableDocs = array_keys($this->wiki->config['documentsType']);
         if (empty($this->arguments['type'])) {
-            return('<div class="alert alert-danger">Action document: il faut préciser un type de document obligatoirement.</div>');
+            return('<div class="alert alert-danger">' . _t('DOCUMENTS_ACTION_TYPE_MISSING') . '</div>');
         }
         if (!in_array($this->arguments['type'], $availableDocs)) {
-            return('<div class="alert alert-danger">Action document: le type de document doit être choisi parmi la liste suivante : "'.implode('", "', $availableDocs).'".</div>');
+            return('<div class="alert alert-danger">' . _t('DOCUMENTS_ACTION_INVALID_TYPE', implode('", "', $availableDocs)) . '</div>');
         }
         if (!empty($this->arguments['id'])) {
             $entry = $entryManager->getOne($this->arguments['id']);
@@ -48,18 +48,17 @@ class DocumentAction extends YesWikiAction
                     $entry
                 );
             } else {
-                return('<div class="alert alert-danger">Action document: la fiche '.$this->arguments['id'].' ne semble pas exister ou ne contient pas de document.</div>');
+                return('<div class="alert alert-danger">' . _t('DOCUMENTS_ACTION_ENTRY_NOT_FOUND', $this->arguments['id']) . '</div>');
             }
         } else {
             $formId = $this->arguments['formId'];
             $entry = $entryManager->create($formId, [
-              'bf_titre' => 'Doc '.$this->arguments['type'].' dans la page '.$this->wiki->getPageTag(),
+              'bf_titre' => _t('DOCUMENTS_DOC_IN_PAGE', $this->arguments['type'], $this->wiki->getPageTag()),
               'id_typeannonce' => $formId,
-              'bf_statut' => 'en_cour_de_redaction',
+              'bf_statut' => _t('DOCUMENTS_DRAFT_STATUS'),
               'bf_documents' => $this->arguments['type'],
               'antispam' => '1',
             ]);
-            // we collect the page content and replace the action with no id
             $currentPage = $pageManager->getOne($this->wiki->getPageTag());
             $re = '/\{\{document(?!.*id="[^"]+").*\}\}/mUi';
             $subst = '{{document type="'.$this->arguments['type'].'" id="'.$entry['id_fiche'].'"}}';

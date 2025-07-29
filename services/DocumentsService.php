@@ -45,7 +45,42 @@ class DocumentsService
     public function __construct(Wiki $wiki)
     {
         $this->wiki = $wiki;
-        $this->initDocumentsConfig($this->wiki->config['documentsType'] ?? self::DOCUMENTS_TYPE_DEFAULT);
+        $defaultConfigWithKeys = [
+            'etherpad' => [
+                'service' => 'etherpad',
+                'label' => _t('DOCUMENTS_ETHERPAD_LABEL'),
+                'description' => _t('DOCUMENTS_ETHERPAD_DESCRIPTION'),
+                'url' => 'https://pad.yeswiki.net/',
+                'iframe' => true,
+            ],
+            'memo' => [
+                'service' => 'memo',
+                'label' => _t('DOCUMENTS_MEMO_LABEL'),
+                'description' => _t('DOCUMENTS_MEMO_DESCRIPTION'),
+                'url' => 'https://memo.yeswiki.pro/',
+                'iframe' => false,
+            ],
+            'hedgedoc' => [
+                'service' => 'hedgedoc',
+                'label' => _t('DOCUMENTS_HEDGEDOC_LABEL'),
+                'description' => _t('DOCUMENTS_HEDGEDOC_DESCRIPTION'),
+                'url' => 'https://md.yeswiki.net',
+                'iframe' => false,
+            ],
+            /* 'onlyoffice-doc' => [ */
+            /* 'service' => 'onlyoffice', */
+            /* 'label' => _t('DOCUMENTS_ONLYOFFICE_DOC_LABEL'), */
+            /* 'description' => _t('DOCUMENTS_ONLYOFFICE_DOC_DESCRIPTION'), */
+            /* 'url' => 'https://onlyoffice.yeswiki.net', */
+            /* 'iframe' => false, */
+            /* 'need-credentials' => true */
+            /* ] */
+        ];
+
+        $initialConfig = $this->wiki->getConfigValue('documentsType') ?? [];
+        $mergedConfig = array_replace_recursive($defaultConfigWithKeys, $initialConfig);
+
+        $this->initDocumentsConfig($mergedConfig);
     }
 
     /** initiDocumentsConfig() - validate config and add default values, if needed.
@@ -62,19 +97,21 @@ class DocumentsService
                     'label' => $value['label'],
                     'description' => $value['description'],
                     'url' => $value['url'],
-                    'iframe' => $value['iframe'] ?? false, // S'assurer que iframe est toujours défini
+                    'iframe' => $value['iframe'] ?? false,
                     'need-credentials' => $value['need-credentials'] ?? false
                 ];
             } else {
-                die("Invalid configuration for document type '$key'. Expected an array with 'label', 'description', 'service' and 'url'.");
+               
+                die(_t('DOCUMENTS_INVALID_CONFIG_ERROR', $key));
             }
         }
-        // dump($this->getWiki()->getConfigValue('documentsCredentials')); // Garder pour le débogage si besoin
+        // dump($this->getWiki()->getConfigValue('documentsCredentials'));
         foreach ($result as $key => $value) {
             if ($value['need-credentials']) {
                 $credentials = $this->wiki->config['documentsCredentials'][$key] ?? null;
                 if (empty($credentials)) {
-                    die("Missing configuration for document type '$key'. Expected not empty value in the configuration config['documentsCredentials']['$key'].");
+                   
+                    die(_t('DOCUMENTS_MISSING_CREDENTIALS_ERROR', $key, $key));
                 }
             }
         }
@@ -85,7 +122,8 @@ class DocumentsService
     {
         $documentUrl = $entry['bf_document_url'] ?? null;
         if (empty($documentUrl)) {
-            return "Aucune URL générée";
+           
+            return _t('DOCUMENTS_NO_URL_GENERATED');
         }
         $output = '';
 
@@ -109,7 +147,7 @@ class DocumentsService
                                     "featuresTips" => false
                                 ]
                             ],
-                            "lang" => "fr"
+                            "lang" => $GLOBALS['prefered_language'] ?? 'fr',
                         ],
                         'documentType' => 'word',
                         'height' => '1000px',
@@ -127,16 +165,21 @@ const docEditor = new DocsAPI.DocEditor("onlyoffice-doc", config);
 </script>
 HTML;
         } else {
-            $titre = $entry['bf_titre'] ?? 'Titre inconnu';
-            $statut = $entry['bf_statut'] ?? 'Statut inconnu';
+           
+            $titre = $entry['bf_titre'] ?? _t('DOCUMENTS_UNKNOWN_TITLE');
+           
+            $statut = $entry['bf_statut'] ?? _t('DOCUMENTS_UNKNOWN_STATUS');
+
             if ($docConfig['iframe'] === true) {
                 $output .= "<iframe src='{$documentUrl}' style='width: 100%; height: 1000px; border: none;'></iframe>";
+            } else {
+               
+                $output .= "<a target='_blank' href='{$documentUrl}'>" . _t('DOCUMENTS_ACCESS_DOCUMENT') . "</a><br />";
+            }
                 $baseUrl = rtrim($this->wiki->getConfigValue('base_url'), '/');
                 $editLink = "{$baseUrl}{$entry['id_fiche']}/edit";
-                $output .= "<small><b>{$docConfig['label']} dans la page {$titre}</b> (Statut: {$statut}) <a target='_blank' href='{$editLink}'>Modifier</a></small>";
-            } else {
-                $output .= "<small><b>{$docConfig['label']} dans la page {$titre}</b> (Statut: {$statut}) <a target='_blank' href='{$documentUrl}'>Modifier</a></small>";
-            }
+               
+                $output .= "<small><b>{$docConfig['label']} " . _t('DOCUMENTS_IN_PAGE') . " {$titre}</b> (" . _t('DOCUMENTS_STATUS') . ": {$statut}) <a target='_blank' href='{$editLink}'>" . _t('DOCUMENTS_MODIFY') . "</a></small>";
         }
         return $output;
 

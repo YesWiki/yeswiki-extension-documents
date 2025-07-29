@@ -10,7 +10,7 @@ class OnlyOfficeHandler extends YesWikiHandler
     {
         $body_stream = '';
         if (($body_stream = file_get_contents("php://input")) === false) {
-            echo "Bad Request";
+            echo _t('DOCUMENTS_BAD_REQUEST');
         }
         error_log("coucou handler onlyoffice !".$body_stream, 0);
         $data = json_decode($body_stream, true);
@@ -19,13 +19,13 @@ class OnlyOfficeHandler extends YesWikiHandler
             $downloadUri = $data["url"];
 
             if (($newData = file_get_contents($downloadUri)) === false) {
-                return "Bad Response";
+                return _t('DOCUMENTS_BAD_RESPONSE');
             } else {
                 $file = filter_input(INPUT_GET, 'filename', FILTER_SANITIZE_SPECIAL_CHARS);
                 if (!empty($file) && file_exists('files/'.$file)) {
                     file_put_contents('files/'.$file, $newData, LOCK_EX);
                 } else {
-                    return 'Wrong or non-existant filename : files/'.$file;
+                    return _t('DOCUMENTS_WRONG_NON_EXISTENT_FILENAME', $file);
                 }
             }
         }
