@@ -34,6 +34,9 @@ class DocumentAction extends YesWikiAction
         $entryManager = $this->getService(EntryManager::class);
         $pageManager = $this->getService(PageManager::class);
         $availableDocs = array_keys($this->wiki->config['documentsType']);
+        if ($this->wiki->getMethod() == 'render') {
+            return('<div class="alert alert-info">'._t('DOCUMENTS_ACTION_NO_PREVIEW').'.</div>');
+        }
         if (empty($this->arguments['type'])) {
             return('<div class="alert alert-danger">' . _t('DOCUMENTS_ACTION_TYPE_MISSING') . '</div>');
         }
@@ -69,3 +72,4 @@ class DocumentAction extends YesWikiAction
         return '';
     }
 }
+

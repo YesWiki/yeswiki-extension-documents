@@ -1,4 +1,5 @@
 <?php
+
 /**
  * French translation for Documents module
  */
@@ -33,5 +34,14 @@ $GLOBALS['translations'] = array_merge(
         'DOCUMENTS_DRAFT_STATUS' => 'en_cour_de_redaction',
         'DOCUMENTS_BAD_REQUEST' => 'Bad Request',
         'DOCUMENTS_BAD_RESPONSE' => 'Bad Response',
+        'DOCUMENTS_ACTION_NO_PREVIEW' => 'L\'action {{document}} ne peut pas être prévisualisée',
+        'AB_document_action_type_label' => 'Type de document',
+        'AB_document_action_etherpad' => 'Etherpad',
+        'AB_document_action_hedgedoc' => 'HedgeDoc',
+        'AB_document_action_memo' => 'Mémo',
+        'AB_document_action_formid_label' => 'Identifiant de formulaire bazar associé',
+        'AB_document_action_id_label' => 'Identifiant de fiche associée (id_fiche)',
+        'AB_document_action_id_hint' => 'Si non renseigné, un nouveau document sera généré.',
     )
 );
+

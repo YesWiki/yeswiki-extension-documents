@@ -1,4 +1,5 @@
 <?php
+
 /**
  * English translation for Documents module
  */
@@ -33,5 +34,15 @@ $GLOBALS['translations'] = array_merge(
         'DOCUMENTS_DRAFT_STATUS' => 'in_drafting',
         'DOCUMENTS_BAD_REQUEST' => 'Bad Request',
         'DOCUMENTS_BAD_RESPONSE' => 'Bad Response',
+        'DOCUMENTS_ACTION_NO_PREVIEW' => 'The action {{document}} cannot be previewed',
+        'AB_document_action_type_label' => 'Document type',
+        'AB_document_action_etherpad' => 'Etherpad',
+        'AB_document_action_hedgedoc' => 'HedgeDoc',
+        'AB_document_action_memo' => 'Memo',
+        'AB_document_action_formid_label' => 'Bazar Form Id associated',
+        'AB_document_action_id_label' => 'Entry Id associated (id_fiche)',
+        'AB_document_action_id_hint' => 'If not indicated, a new document will be generated.',
+
     )
 );
+

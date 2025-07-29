@@ -1,0 +1,25 @@
+label: Documents
+onlyForAdmins: false
+actions:
+  document:
+    label: Document
+    hint: Intégrer un document collaboratif dans la page
+    properties:
+      type:
+        type: list
+        label: _t(AB_document_action_type_label)
+        options:
+          etherpad: _t(AB_document_action_etherpad)
+          hedgedoc: _t(AB_document_action_hedgedoc)
+          memo: _t(AB_document_action_memo)
+        required: true
+      id:
+        label: _t(AB_document_action_id_label)
+        hint: _t(AB_document_action_id_hint)
+        type: entry-list
+      formId:
+        label: _t(AB_document_action_formid_label)
+        default: 1500
+        type: number
+        advanced: true
+
