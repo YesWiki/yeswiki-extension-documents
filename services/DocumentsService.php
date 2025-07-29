@@ -172,14 +172,12 @@ HTML;
 
             if ($docConfig['iframe'] === true) {
                 $output .= "<iframe src='{$documentUrl}' style='width: 100%; height: 1000px; border: none;'></iframe>";
-            } else {
-               
-                $output .= "<a target='_blank' href='{$documentUrl}'>" . _t('DOCUMENTS_ACCESS_DOCUMENT') . "</a><br />";
             }
-                $baseUrl = rtrim($this->wiki->getConfigValue('base_url'), '/');
-                $editLink = "{$baseUrl}{$entry['id_fiche']}/edit";
-               
-                $output .= "<small><b>{$docConfig['label']} " . _t('DOCUMENTS_IN_PAGE') . " {$titre}</b> (" . _t('DOCUMENTS_STATUS') . ": {$statut}) <a target='_blank' href='{$editLink}'>" . _t('DOCUMENTS_MODIFY') . "</a></small>";
+
+            $baseUrl = rtrim($this->wiki->getConfigValue('base_url'), '/');
+            $editLink = "{$baseUrl}{$entry['id_fiche']}/edit";
+
+            $output .= "<small><a target='_blank' href='{$documentUrl}'><b>{$titre} </b></a> (" . "{$docConfig['label']} - " . _t('DOCUMENTS_STATUS') . ": {$statut}) <a target='_blank' href='{$editLink}'>" . _t('DOCUMENTS_MODIFY') . "</a></small>";
         }
         return $output;
 
