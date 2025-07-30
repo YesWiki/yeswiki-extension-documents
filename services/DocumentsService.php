@@ -130,7 +130,7 @@ class DocumentsService
                         'height' => '1000px',
                         'width' => '100%',
                     ];
-            $config['token'] = JWT::encode($config, $this->wiki->config['documentsCredentials'][$documentTypeKey], 'HS256');
+            $config['token'] = JWT::encode($config, $this->wiki->config['documentsCredentials'][$entry['bf_documents']], 'HS256');
             $jsconfig = json_encode($config);
             $output .= <<<HTML
 <div id="onlyoffice-doc"></div>
