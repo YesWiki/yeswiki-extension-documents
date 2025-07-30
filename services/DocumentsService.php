@@ -9,78 +9,48 @@ use YesWiki\Wiki;
 class DocumentsService
 {
     protected $wiki;
-    protected const DOCUMENTS_TYPE_DEFAULT = [
-        'etherpad' => [
-            'service' => 'etherpad',
-            'label' => 'Etherpad',
-            'description' => 'Un document collaboratif simple',
-            'url' => 'https://pad.yeswiki.net/',
-            'iframe' => true,
-        ],
-        'memo' => [
-            'service' => 'memo',
-            'label' => 'Memo',
-            'description' => 'Un tableau de post-it collaboratif',
-            'url' => 'https://memo.yeswiki.pro/',
-            'iframe' => false,
-        ],
-        'hedgedoc' => [
-            'service' => 'hedgedoc',
-            'label' => 'HedgeDoc',
-            'description' => 'Un editeur de markdown collaboratif',
-            'url' => 'https://md.yeswiki.net',
-            'iframe' => false,
-        ],
-        /* 'onlyoffice-doc' => [ */
-        /* 'service' => 'onlyoffice', */
-        /* 'label' => 'Docx Only-office', */
-        /* 'description' => 'Document docx Only-office', */
-        /* 'url' => 'https://onlyoffice.yeswiki.net', */
-        /* 'iframe' => false, */
-        /* 'need-credentials' => true */
-        /* ] */
-
-    ];
+    protected $documentsDefault;
 
     public function __construct(Wiki $wiki)
     {
         $this->wiki = $wiki;
-        $defaultConfigWithKeys = [
-            'etherpad' => [
-                'service' => 'etherpad',
-                'label' => _t('DOCUMENTS_ETHERPAD_LABEL'),
-                'description' => _t('DOCUMENTS_ETHERPAD_DESCRIPTION'),
-                'url' => 'https://pad.yeswiki.net/',
-                'iframe' => true,
-            ],
-            'memo' => [
-                'service' => 'memo',
-                'label' => _t('DOCUMENTS_MEMO_LABEL'),
-                'description' => _t('DOCUMENTS_MEMO_DESCRIPTION'),
-                'url' => 'https://memo.yeswiki.pro/',
-                'iframe' => false,
-            ],
-            'hedgedoc' => [
-                'service' => 'hedgedoc',
-                'label' => _t('DOCUMENTS_HEDGEDOC_LABEL'),
-                'description' => _t('DOCUMENTS_HEDGEDOC_DESCRIPTION'),
-                'url' => 'https://md.yeswiki.net',
-                'iframe' => false,
-            ],
-            /* 'onlyoffice-doc' => [ */
-            /* 'service' => 'onlyoffice', */
-            /* 'label' => _t('DOCUMENTS_ONLYOFFICE_DOC_LABEL'), */
-            /* 'description' => _t('DOCUMENTS_ONLYOFFICE_DOC_DESCRIPTION'), */
-            /* 'url' => 'https://onlyoffice.yeswiki.net', */
-            /* 'iframe' => false, */
-            /* 'need-credentials' => true */
-            /* ] */
+        $this->documentsDefault = [
+          'etherpad' => [
+              'service' => 'etherpad',
+              'label' => _t('DOCUMENTS_ETHERPAD_LABEL'),
+              'description' => _t('DOCUMENTS_ETHERPAD_DESCRIPTION'),
+              'url' => 'https://pad.yeswiki.net/',
+              'iframe' => true,
+          ],
+          'memo' => [
+              'service' => 'memo',
+              'label' => _t('DOCUMENTS_MEMO_LABEL'),
+              'description' => _t('DOCUMENTS_MEMO_DESCRIPTION'),
+              'url' => 'https://memo.yeswiki.pro/',
+              'iframe' => false,
+          ],
+          'hedgedoc' => [
+              'service' => 'hedgedoc',
+              'label' => _t('DOCUMENTS_HEDGEDOC_LABEL'),
+              'description' => _t('DOCUMENTS_HEDGEDOC_DESCRIPTION'),
+              'url' => 'https://md.yeswiki.net',
+              'iframe' => false,
+          ],
+          /* 'onlyoffice-doc' => [ */
+          /* 'service' => 'onlyoffice', */
+          /* 'label' => _t('DOCUMENTS_ONLYOFFICE_DOC_LABEL'), */
+          /* 'description' => _t('DOCUMENTS_ONLYOFFICE_DOC_DESCRIPTION'), */
+          /* 'url' => 'https://onlyoffice.yeswiki.net', */
+          /* 'iframe' => false, */
+          /* 'need-credentials' => true */
+          /* ] */
         ];
-
         $initialConfig = $this->wiki->getConfigValue('documentsType') ?? [];
-        $mergedConfig = array_replace_recursive($defaultConfigWithKeys, $initialConfig);
-
-        $this->initDocumentsConfig($mergedConfig);
+        if (!empty($initialConfig)) {
+            $this->initDocumentsConfig($initialConfig);
+        } else {
+            $this->initDocumentsConfig($this->documentsDefault);
+        }
     }
 
     /** initiDocumentsConfig() - validate config and add default values, if needed.
@@ -101,7 +71,6 @@ class DocumentsService
                     'need-credentials' => $value['need-credentials'] ?? false
                 ];
             } else {
-               
                 die(_t('DOCUMENTS_INVALID_CONFIG_ERROR', $key));
             }
         }
@@ -110,7 +79,6 @@ class DocumentsService
             if ($value['need-credentials']) {
                 $credentials = $this->wiki->config['documentsCredentials'][$key] ?? null;
                 if (empty($credentials)) {
-                   
                     die(_t('DOCUMENTS_MISSING_CREDENTIALS_ERROR', $key, $key));
                 }
             }
@@ -122,7 +90,7 @@ class DocumentsService
     {
         $documentUrl = $entry['bf_document_url'] ?? null;
         if (empty($documentUrl)) {
-           
+
             return _t('DOCUMENTS_NO_URL_GENERATED');
         }
         $output = '';
@@ -165,9 +133,9 @@ const docEditor = new DocsAPI.DocEditor("onlyoffice-doc", config);
 </script>
 HTML;
         } else {
-           
+
             $titre = $entry['bf_titre'] ?? _t('DOCUMENTS_UNKNOWN_TITLE');
-           
+
             $statut = $entry['bf_statut'] ?? _t('DOCUMENTS_UNKNOWN_STATUS');
 
             if ($docConfig['iframe'] === true) {
@@ -180,6 +148,6 @@ HTML;
             $output .= "<small><a target='_blank' href='{$documentUrl}'><b>{$titre} </b></a> (" . "{$docConfig['label']} - " . _t('DOCUMENTS_STATUS') . ": {$statut}) <a target='_blank' href='{$editLink}'>" . _t('DOCUMENTS_MODIFY') . "</a></small>";
         }
         return $output;
-
     }
 }
+
