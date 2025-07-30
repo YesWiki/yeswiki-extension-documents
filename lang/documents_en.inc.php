@@ -28,9 +28,9 @@ $GLOBALS['translations'] = array_merge(
         'DOCUMENTS_WRONG_NON_EXISTENT_FILENAME' => 'Wrong or non-existent filename : files/%s',
         'DOCUMENTS_LINK_ACCESS' => 'Document access link',
         'DOCUMENTS_ACTION_TYPE_MISSING' => 'Document action: document type must be specified.',
-        'DOCUMENTS_ACTION_INVALID_TYPE' => 'Document action: document type must be chosen from the following list: "%s".',
-        'DOCUMENTS_ACTION_ENTRY_NOT_FOUND' => 'Document action: entry %s does not seem to exist or does not contain a document.',
-        'DOCUMENTS_DOC_IN_PAGE' => 'Doc %s in page %s',
+        'DOCUMENTS_ACTION_INVALID_TYPE' => 'Document action: document type must be chosen from the following list: "%{doc}".',
+        'DOCUMENTS_ACTION_ENTRY_NOT_FOUND' => 'Document action: entry %{id} does not seem to exist or does not contain a document.',
+        'DOCUMENTS_DOC_IN_PAGE' => 'Doc %{type} in page %{page}',
         'DOCUMENTS_DRAFT_STATUS' => 'in_drafting',
         'DOCUMENTS_BAD_REQUEST' => 'Bad Request',
         'DOCUMENTS_BAD_RESPONSE' => 'Bad Response',
@@ -45,4 +45,3 @@ $GLOBALS['translations'] = array_merge(
 
     )
 );
-

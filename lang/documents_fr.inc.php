@@ -28,9 +28,9 @@ $GLOBALS['translations'] = array_merge(
         'DOCUMENTS_WRONG_NON_EXISTENT_FILENAME' => 'Nom de fichier incorrect ou inexistant : files/%s',
         'DOCUMENTS_LINK_ACCESS' => 'Lien d\'accès au document',
         'DOCUMENTS_ACTION_TYPE_MISSING' => 'Action document: il faut préciser un type de document obligatoirement.',
-        'DOCUMENTS_ACTION_INVALID_TYPE' => 'Action document: le type de document doit être choisi parmi la liste suivante : "%s".',
-        'DOCUMENTS_ACTION_ENTRY_NOT_FOUND' => 'Action document: la fiche %s ne semble pas exister ou ne contient pas de document.',
-        'DOCUMENTS_DOC_IN_PAGE' => 'Doc %s dans la page %s',
+        'DOCUMENTS_ACTION_INVALID_TYPE' => 'Action document: le type de document doit être choisi parmi la liste suivante : "%{doc}".',
+        'DOCUMENTS_ACTION_ENTRY_NOT_FOUND' => 'Action document: la fiche %{id} ne semble pas exister ou ne contient pas de document.',
+        'DOCUMENTS_DOC_IN_PAGE' => 'Doc %{type} dans la page %{page}',
         'DOCUMENTS_DRAFT_STATUS' => 'en_cour_de_redaction',
         'DOCUMENTS_BAD_REQUEST' => 'Bad Request',
         'DOCUMENTS_BAD_RESPONSE' => 'Bad Response',
@@ -44,4 +44,3 @@ $GLOBALS['translations'] = array_merge(
         'AB_document_action_id_hint' => 'Si non renseigné, un nouveau document sera généré.',
     )
 );
-
