@@ -2,9 +2,8 @@
 
 namespace YesWiki\Documents\Service;
 
-use YesWiki\Bazar\Service\EntryManager;
-use YesWiki\Core\Controller\CsrfTokenController;
 use YesWiki\Wiki;
+use Firebase\JWT\JWT;
 
 class DocumentsService
 {
@@ -71,23 +70,25 @@ class DocumentsService
                     'need-credentials' => $value['need-credentials'] ?? false
                 ];
             } else {
-                die(_t('DOCUMENTS_INVALID_CONFIG_ERROR',
-                [
+                die(_t(
+                    'DOCUMENTS_INVALID_CONFIG_ERROR',
+                    [
                     'key' => $key
                 ]
-            ));
+                ));
             }
         }
         foreach ($result as $key => $value) {
             if ($value['need-credentials']) {
                 $credentials = $this->wiki->config['documentsCredentials'][$key] ?? null;
                 if (empty($credentials)) {
-                    die(_t('DOCUMENTS_MISSING_CREDENTIALS_ERROR',
-                    [
+                    die(_t(
+                        'DOCUMENTS_MISSING_CREDENTIALS_ERROR',
+                        [
                         'key' => $key,
                         'value' => $key
                     ]
-                ));
+                    ));
                 }
             }
         }
@@ -158,4 +159,3 @@ HTML;
         return $output;
     }
 }
-
