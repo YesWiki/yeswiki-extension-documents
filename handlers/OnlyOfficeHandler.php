@@ -25,7 +25,11 @@ class OnlyOfficeHandler extends YesWikiHandler
                 if (!empty($file) && file_exists('files/'.$file)) {
                     file_put_contents('files/'.$file, $newData, LOCK_EX);
                 } else {
-                    return _t('DOCUMENTS_WRONG_NON_EXISTENT_FILENAME', $file);
+                    return _t('DOCUMENTS_WRONG_NON_EXISTENT_FILENAME',
+                        [
+                        'type' => $file,
+                        ]
+                    );
                 }
             }
         }

@@ -71,7 +71,11 @@ class DocumentsService
                     'need-credentials' => $value['need-credentials'] ?? false
                 ];
             } else {
-                die(_t('DOCUMENTS_INVALID_CONFIG_ERROR', $key));
+                die(_t('DOCUMENTS_INVALID_CONFIG_ERROR',
+                [
+                    'key' => $key
+                ]
+            ));
             }
         }
         // dump($this->getWiki()->getConfigValue('documentsCredentials'));
@@ -79,7 +83,12 @@ class DocumentsService
             if ($value['need-credentials']) {
                 $credentials = $this->wiki->config['documentsCredentials'][$key] ?? null;
                 if (empty($credentials)) {
-                    die(_t('DOCUMENTS_MISSING_CREDENTIALS_ERROR', $key, $key));
+                    die(_t('DOCUMENTS_MISSING_CREDENTIALS_ERROR',
+                    [
+                        'key' => $key,
+                        'value' => $key
+                    ]
+                ));
                 }
             }
         }

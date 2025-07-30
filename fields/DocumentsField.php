@@ -102,7 +102,11 @@ class DocumentsField extends BazarField
                     if ($finalUrl) {
                         $generatedUrl = $finalUrl;
                     } else {
-                        die(_t('DOCUMENTS_CURL_ERROR', "{$baseUrl}/new"));
+                        die(_t('DOCUMENTS_CURL_ERROR',
+                            [
+                                'baseUrl' =>"{$baseUrl}/new"
+                            ]
+                    ));
                     }
                     break;
                 case 'onlyoffice-doc':
