@@ -45,7 +45,7 @@ class DocumentsService
           /* 'need-credentials' => true */
           /* ] */
         ];
-        $initialConfig = $this->wiki->getConfigValue('documentsType') ?? [];
+        $initialConfig = $this->wiki->config['documentsType'] ?? [];
         if (!empty($initialConfig)) {
             $this->initDocumentsConfig($initialConfig);
         } else {
@@ -78,7 +78,6 @@ class DocumentsService
             ));
             }
         }
-        // dump($this->getWiki()->getConfigValue('documentsCredentials'));
         foreach ($result as $key => $value) {
             if ($value['need-credentials']) {
                 $credentials = $this->wiki->config['documentsCredentials'][$key] ?? null;
@@ -114,10 +113,10 @@ class DocumentsService
                             "url" => $documentUrl,
                         ],
                         'editorConfig' => [
-                            'callbackUrl' => $this->getWiki()->href('onlyoffice', '', 'filename='.$doc['basename'], false),
+                            'callbackUrl' => $this->wiki->href('onlyoffice', '', 'filename='.$doc['basename'], false),
                             "user" => [
-                                "id" => $this->getWiki()->GetUsername(),
-                                "name" => $this->getWiki()->GetUsername(),
+                                "id" => $this->wiki->GetUsername(),
+                                "name" => $this->wiki->GetUsername(),
                             ],
                             "customization" => [
                                 "features" => [
@@ -130,7 +129,7 @@ class DocumentsService
                         'height' => '1000px',
                         'width' => '100%',
                     ];
-            $config['token'] = JWT::encode($config, $this->getWiki()->getConfigValue('documentsCredentials')[$documentTypeKey], 'HS256');
+            $config['token'] = JWT::encode($config, $this->wiki->config['documentsCredentials'][$documentTypeKey], 'HS256');
             $jsconfig = json_encode($config);
             $output .= <<<HTML
 <div id="onlyoffice-doc"></div>
@@ -151,7 +150,7 @@ HTML;
                 $output .= "<iframe src='{$documentUrl}' style='width: 100%; height: 1000px; border: none;'></iframe>";
             }
 
-            $baseUrl = rtrim($this->wiki->getConfigValue('base_url'), '/');
+            $baseUrl = rtrim($this->wiki->config['base_url'], '/');
             $editLink = "{$baseUrl}{$entry['id_fiche']}/edit";
 
             $output .= "<small><a target='_blank' href='{$documentUrl}'><b>{$titre} </b></a> (" . "{$docConfig['label']} - " . _t('DOCUMENTS_STATUS') . ": {$statut}) <a target='_blank' href='{$editLink}'>" . _t('DOCUMENTS_MODIFY') . "</a></small>";
