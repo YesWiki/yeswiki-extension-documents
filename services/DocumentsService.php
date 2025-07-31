@@ -2,60 +2,56 @@
 
 namespace YesWiki\Documents\Service;
 
+use Psr\Container\ContainerInterface;
+use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use YesWiki\Bazar\Service\EntryManager;
+use YesWiki\Bazar\Service\FormManager;
 use YesWiki\Wiki;
+use YesWiki\Bazar\Service\ListManager;
 use Firebase\JWT\JWT;
 
 class DocumentsService
 {
+    protected $params;
+    protected $services;
+    protected $entryManager;
+    protected $formManager;
+    protected $listManager;
     protected $wiki;
     protected $documentsDefault;
+    protected $providers;
 
-    public function __construct(Wiki $wiki)
-    {
+    public function __construct(
+        ParameterBagInterface $params,
+        ContainerInterface $services,
+        EntryManager $entryManager,
+        FormManager $formManager,
+        ListManager $listManager,
+        Wiki $wiki
+    ) {
+        $this->params = $params;
+        $this->services = $services;
+        $this->entryManager = $entryManager;
+        $this->formManager = $formManager;
+        $this->listManager = $listManager;
         $this->wiki = $wiki;
-        $this->documentsDefault = [
-          'etherpad' => [
-              'service' => 'etherpad',
-              'label' => _t('DOCUMENTS_ETHERPAD_LABEL'),
-              'description' => _t('DOCUMENTS_ETHERPAD_DESCRIPTION'),
-              'url' => 'https://pad.yeswiki.net/',
-              'iframe' => true,
-          ],
-          'memo' => [
-              'service' => 'memo',
-              'label' => _t('DOCUMENTS_MEMO_LABEL'),
-              'description' => _t('DOCUMENTS_MEMO_DESCRIPTION'),
-              'url' => 'https://memo.yeswiki.pro/',
-              'iframe' => false,
-          ],
-          'hedgedoc' => [
-              'service' => 'hedgedoc',
-              'label' => _t('DOCUMENTS_HEDGEDOC_LABEL'),
-              'description' => _t('DOCUMENTS_HEDGEDOC_DESCRIPTION'),
-              'url' => 'https://md.yeswiki.net',
-              'iframe' => false,
-          ],
-          /* 'onlyoffice-doc' => [ */
-          /* 'service' => 'onlyoffice', */
-          /* 'label' => _t('DOCUMENTS_ONLYOFFICE_DOC_LABEL'), */
-          /* 'description' => _t('DOCUMENTS_ONLYOFFICE_DOC_DESCRIPTION'), */
-          /* 'url' => 'https://onlyoffice.yeswiki.net', */
-          /* 'iframe' => false, */
-          /* 'need-credentials' => true */
-          /* ] */
-        ];
+        $this->providers = $this->instanciateDocumentProviders();
+        $this->documentsDefault = $this->getAllDocumentsDefaults();
+
         $initialConfig = $this->wiki->config['documentsType'] ?? [];
         if (!empty($initialConfig)) {
             $this->initDocumentsConfig($initialConfig);
         } else {
             $this->initDocumentsConfig($this->documentsDefault);
         }
+        dump($this->providers);
+        $this->providers['Etherpad']->createDocument(['bf_documents' => 'etherpad']);
     }
 
     /** initiDocumentsConfig() - validate config and add default values, if needed.
      *
      * @return void
-     */
+    */
     public function initDocumentsConfig($config)
     {
         $result = [];
@@ -67,7 +63,8 @@ class DocumentsService
                     'description' => $value['description'],
                     'url' => $value['url'],
                     'iframe' => $value['iframe'] ?? false,
-                    'need-credentials' => $value['need-credentials'] ?? false
+                    'need-credentials' => $value['need-credentials'] ?? false,
+                    'options' => $value['options'] ?? [],
                 ];
             } else {
                 die(_t(
@@ -93,6 +90,50 @@ class DocumentsService
             }
         }
         $this->wiki->config['documentsType'] = $result;
+    }
+
+    public function getAvailableDocumentProviders()
+    {
+
+        $services = array_filter($this->wiki->services->getServiceIds(), function ($subject) {
+            return preg_match('/DocumentProvider$/', $subject);
+        });
+
+        $docProviders = [];
+        foreach ($services as $serv) {
+            $short = explode('Service\\', $serv)[1];
+            $shortClass = str_replace(['DocumentProvider'], '', $short);
+            $docProviders[$shortClass] = $serv;
+        }
+        return $docProviders;
+    }
+
+    private function instanciateDocumentProviders()
+    {
+        $available = $this->getAvailableDocumentProviders();
+        $docProviderClasses = [];
+        foreach ($available as $docProvider => $className) {
+            if (!empty($className) && class_exists($className, false)) {
+                $docProviderClasses[$docProvider] = new $className(
+                    $this->params,
+                    $this->services,
+                    $this->entryManager,
+                    $this->formManager,
+                    $this->listManager,
+                    $this->wiki
+                );
+            }
+        }
+        return $docProviderClasses;
+    }
+
+    private function getAllDocumentsDefaults()
+    {
+        $defaults = [];
+        foreach ($this->providers as $name => $provider) {
+            $defaults = array_merge($defaults, $provider->getDefaultInstance());
+        }
+        return $defaults;
     }
 
     public function showDocument($docConfig, array $entry = [])

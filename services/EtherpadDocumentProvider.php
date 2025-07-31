@@ -4,14 +4,13 @@ namespace YesWiki\Documents\Service;
 
 use Psr\Container\ContainerInterface;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use YesWiki\Documents\Service\DocumentProvider;
 use YesWiki\Bazar\Service\EntryManager;
 use YesWiki\Bazar\Service\FormManager;
 use YesWiki\Bazar\Service\ListManager;
 use YesWiki\Wiki;
 
-use function Symfony\Component\String\u;
-
-abstract class DocumentProvider
+class EtherpadDocumentProvider extends DocumentProvider
 {
     protected $params;
     protected $services;
@@ -41,7 +40,7 @@ abstract class DocumentProvider
     }
 
     /**
-     * Check if config input is good enough to be used by the DocumentProvider
+     * Check if config input is good enough to be used by Importer
      * @param array $config
      * @return array $config checked config
      */
@@ -50,31 +49,35 @@ abstract class DocumentProvider
         return $config;
     }
 
-    public function createDocumentId($title, $maxSize = 255)
+    public function createDocument(array $entry)
     {
-        $slug = (string) u($title)
-               ->ascii()
-               ->lower()
-               ->replaceMatches('/[^a-z0-9\s-]/', '')
-               ->replaceMatches('/\s+/', '_')
-               ->trim('_');
-        $uniqueId = time() . mt_rand(1000, 9999);
-        if (strlen($slug) > ($maxSize - 15)) {
-            $slug = substr($slug, 0, ($maxSize - 15));
-        }
-        return $slug.'-'.$uniqueId;
+        dump($this->wiki->config, $entry['bf_documents']);
+        exit;
+        $baseUrl = rtrim($this->documentsType[$documentTypeKey]['url'], '/');
+        $generatedUrl = "{$baseUrl}/p/".$this->createDocumentId($entry['bf_titre'], 35);
+        return $generatedUrl;
     }
 
-    public function createDocument(array $data)
+    public function getDefaultInstance(): array
     {
-        return;
-    }
-    public function getDefaultInstance()
-    {
-        return [];
+        return [
+          'etherpad' => [
+                  'service' => 'etherpad',
+                  'label' => _t('DOCUMENTS_ETHERPAD_LABEL'),
+                  'description' => _t('DOCUMENTS_ETHERPAD_DESCRIPTION'),
+                  'url' => 'https://pad.yeswiki.net/',
+                  'iframe' => true,
+          ]
+        ];
     }
     public function showDocument(array $data)
     {
         return;
+    }
+
+    // HELPERS
+    protected function getService($class)
+    {
+        return $this->services->get($class);
     }
 }

@@ -6,8 +6,6 @@ use YesWiki\Bazar\Field\BazarField;
 use YesWiki\Documents\Service\DocumentsService;
 use Psr\Container\ContainerInterface;
 
-use function Symfony\Component\String\u;
-
 /**
  * @Field({"documents"})
  */
@@ -72,15 +70,6 @@ class DocumentsField extends BazarField
         if ($documentTypeKey && isset($this->documentsType[$documentTypeKey])) {
             $baseUrl = rtrim($this->documentsType[$documentTypeKey]['url'], '/');
 
-            $slug = (string) u($title)
-                ->ascii()
-                ->lower()
-                ->replaceMatches('/[^a-z0-9\s-]/', '')
-                ->replaceMatches('/\s+/', '_')
-                ->trim('_');
-
-            $uniqueId = time() . mt_rand(1000, 9999);
-
             switch ($documentTypeKey) {
                 case 'etherpad':
                     $generatedUrl = "{$baseUrl}/p/{$slug}-{$uniqueId}";
@@ -102,11 +91,12 @@ class DocumentsField extends BazarField
                     if ($finalUrl) {
                         $generatedUrl = $finalUrl;
                     } else {
-                        die(_t('DOCUMENTS_CURL_ERROR',
+                        die(_t(
+                            'DOCUMENTS_CURL_ERROR',
                             [
-                                'baseUrl' =>"{$baseUrl}/new"
+                                'baseUrl' => "{$baseUrl}/new"
                             ]
-                    ));
+                        ));
                     }
                     break;
                 case 'onlyoffice-doc':
@@ -136,3 +126,4 @@ class DocumentsField extends BazarField
         );
     }
 }
+
