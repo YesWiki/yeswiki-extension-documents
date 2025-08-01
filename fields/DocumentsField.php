@@ -68,51 +68,11 @@ class DocumentsField extends BazarField
         }
 
         if ($documentTypeKey && isset($this->documentsType[$documentTypeKey])) {
-            $baseUrl = rtrim($this->documentsType[$documentTypeKey]['url'], '/');
-
-            switch ($documentTypeKey) {
-                case 'etherpad':
-                    $generatedUrl = "{$baseUrl}/p/{$slug}-{$uniqueId}";
-                    break;
-                case 'memo':
-                    $generatedUrl = "{$baseUrl}/{$slug}-{$uniqueId}";
-                    break;
-                case 'hedgedoc':
-                    $ch = curl_init();
-                    curl_setopt($ch, CURLOPT_URL, $baseUrl."/new");
-                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-                    curl_setopt($ch, CURLOPT_MAXREDIRS, 5);
-                    curl_setopt($ch, CURLOPT_NOBODY, true);
-                    curl_exec($ch);
-                    $finalUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
-                    curl_close($ch);
-
-                    if ($finalUrl) {
-                        $generatedUrl = $finalUrl;
-                    } else {
-                        die(_t(
-                            'DOCUMENTS_CURL_ERROR',
-                            [
-                                'baseUrl' => "{$baseUrl}/new"
-                            ]
-                        ));
-                    }
-                    break;
-                case 'onlyoffice-doc':
-                    $generatedFileName = "files/{$slug}-{$uniqueId}.docx";
-                    copy('tools/documents/assets/model.docx', $generatedFileName);
-                    $generatedUrl = "{$this->getWiki()->getConfigValue("base_url")}";
-                    $generatedUrl = str_replace('/?', "/{$generatedFileName}", $generatedUrl);
-                    break;
-                default:
-                    $generatedUrl = "{$baseUrl}/doc/{$slug}-{$uniqueId}";
-                    break;
-            }
+            $entry['bf_document_url'] = $this->service->createDocument(
+                $this->documentsType[$documentTypeKey],
+                $entry
+            );
         }
-
-        $entry['bf_document_url'] = $generatedUrl;
-
         return $entry;
     }
 
@@ -126,4 +86,3 @@ class DocumentsField extends BazarField
         );
     }
 }
-

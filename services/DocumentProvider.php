@@ -65,14 +65,16 @@ abstract class DocumentProvider
         return $slug.'-'.$uniqueId;
     }
 
-    public function createDocument(array $data)
+    public function createDocument(array $docConfig, array $entry)
     {
         return;
     }
+
     public function getDefaultInstance()
     {
         return [];
     }
+
     public function showDocument(array $data)
     {
         $docConfig = $data['docConfig'];

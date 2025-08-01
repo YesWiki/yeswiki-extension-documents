@@ -33,18 +33,19 @@ class MemoDocumentProvider extends DocumentProvider
         return $config;
     }
 
-    public function createDocument(array $data)
+    /*
+     * @param array $docConfig La configuration du document.
+     * @param array $entry Les données de l'entrée Bazar.
+     * @return string L'URL du document créé.
+     */
+    public function createDocument(array $docConfig, array $entry)
     {
-        $title = $data['bf_titre'] ?? 'Nouveau mémo';
-        $docConfigKey = $data['bf_documents'];
-        $defaultInstances = $this->getDefaultInstance();
-        $config = $defaultInstances[$docConfigKey] ?? null;
-
-        if (!$config || !isset($config['url'])) {
+        $title = $entry['bf_titre'] ?? 'Nouveau mémo';
+        if (!$docConfig || !isset($docConfig['url'])) {
             throw new \RuntimeException("Configuration Memo invalide ou manquante.");
         }
-        $baseUrl = rtrim($config['url'], '/');
-        $generatedUrl = "{$baseUrl}/new/".$this->createDocumentId($title, 35);
+        $baseUrl = rtrim($docConfig['url'], '/');
+        $generatedUrl = "{$baseUrl}/".$this->createDocumentId($title);
         return $generatedUrl;
     }
 
@@ -61,4 +62,3 @@ class MemoDocumentProvider extends DocumentProvider
         ];
     }
 }
-

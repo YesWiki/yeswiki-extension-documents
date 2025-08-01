@@ -12,7 +12,6 @@ use YesWiki\Wiki;
 
 class EtherpadDocumentProvider extends DocumentProvider
 {
-
     public function __construct(
         ParameterBagInterface $params,
         ContainerInterface $services,
@@ -36,19 +35,17 @@ class EtherpadDocumentProvider extends DocumentProvider
 
     /**
      * Crée un nouveau document Etherpad et retourne son URL.
+     * @param array $docConfig La configuration du document.
      * @param array $entry Les données de l'entrée Bazar.
      * @return string L'URL du document créé.
      */
-    public function createDocument(array $entry)
+    public function createDocument(array $docConfig, array $entry)
     {
-        $defaultInstances = $this->getDefaultInstance();
-        $config = $defaultInstances[$docConfigKey] ?? null;
-
-        if (!$config || !isset($config['url'])) {
+        if (!$docConfig || !isset($docConfig['url'])) {
             throw new \RuntimeException("Configuration Etherpad invalide ou manquante.");
         }
 
-        $baseUrl = rtrim($config['url'], '/');
+        $baseUrl = rtrim($docConfig['url'], '/');
         $title = $entry['bf_titre'] ?? 'Nouveau document';
         $generatedUrl = "{$baseUrl}/p/".$this->createDocumentId($title, 35);
         return $generatedUrl;
@@ -83,3 +80,4 @@ class EtherpadDocumentProvider extends DocumentProvider
         return "<a target='_blank' href='{$documentUrl}'>Cliquer pour ouvrir le document Etherpad</a>";
     }
 }
+

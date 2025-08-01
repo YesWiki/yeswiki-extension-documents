@@ -33,18 +33,34 @@ class HedgedocDocumentProvider extends DocumentProvider
         return $config;
     }
 
-    public function createDocument(array $data)
+    /*
+     * @param array $docConfig La configuration du document.
+     * @param array $entry Les données de l'entrée Bazar.
+     * @return string L'URL du document créé.
+     */
+    public function createDocument(array $docConfig, array $entry)
     {
-        $title = $data['bf_titre'] ?? 'Nouveau document Hedgedoc';
-        $docConfigKey = $data['bf_documents'];
-        $defaultInstances = $this->getDefaultInstance();
-        $config = $defaultInstances[$docConfigKey] ?? null;
+        $baseUrl = rtrim($docConfig['url'], '/');
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $baseUrl."/new");
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_MAXREDIRS, 5);
+        curl_setopt($ch, CURLOPT_NOBODY, true);
+        curl_exec($ch);
+        $finalUrl = curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
+        curl_close($ch);
 
-        if (!$config || !isset($config['url'])) {
-            throw new \RuntimeException("Configuration Hedgedoc invalide ou manquante.");
+        if ($finalUrl) {
+            $generatedUrl = $finalUrl;
+        } else {
+            die(_t(
+                'DOCUMENTS_CURL_ERROR',
+                [
+                    'baseUrl' => "{$baseUrl}/new"
+                ]
+            ));
         }
-        $baseUrl = rtrim($config['url'], '/');
-        $generatedUrl = "{$baseUrl}/".$this->createDocumentId($title, 35);
         return $generatedUrl;
     }
 
@@ -61,4 +77,3 @@ class HedgedocDocumentProvider extends DocumentProvider
         ];
     }
 }
-

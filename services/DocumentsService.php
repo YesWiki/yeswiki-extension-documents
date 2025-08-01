@@ -8,7 +8,6 @@ use YesWiki\Bazar\Service\EntryManager;
 use YesWiki\Bazar\Service\FormManager;
 use YesWiki\Wiki;
 use YesWiki\Bazar\Service\ListManager;
-use Firebase\JWT\JWT;
 
 class DocumentsService
 {
@@ -44,11 +43,9 @@ class DocumentsService
         } else {
             $this->initDocumentsConfig($this->documentsDefault);
         }
-        // dump($this->providers);
-        // $this->providers['Etherpad']->createDocument(['bf_documents' => 'etherpad']);
     }
 
-    /** initiDocumentsConfig() - validate config and add default values, if needed.
+    /** initDocumentsConfig() - validate config and add default values, if needed.
      *
      * @return void
     */
@@ -142,6 +139,22 @@ class DocumentsService
     }
 
     /**
+     * Créé un document en déléguant au fournisseur approprié.
+     * @param array $docConfig Configuration du type de document (issue de documentsType).
+     * @param array $entry Données de l'entrée Bazar associée au document.
+     * @return string URL du document créé.
+     */
+    public function createDocument($docConfig, array $entry = [])
+    {
+        $providerName = strtolower($docConfig['service']);
+        if (!isset($this->providers[$providerName])) {
+            return _t('DOCUMENTS_UNSUPPORTED_SERVICE', ['service' => $providerName]);
+        }
+        $provider = $this->providers[$providerName];
+        return $provider->createDocument($docConfig, $entry);
+    }
+
+    /**
      * Affiche un document en déléguant au fournisseur approprié.
      * @param array $docConfig Configuration du type de document (issue de documentsType).
      * @param array $entry Données de l'entrée Bazar associée au document.
@@ -158,16 +171,14 @@ class DocumentsService
         if (!isset($this->providers[$providerName])) {
             return _t('DOCUMENTS_UNSUPPORTED_SERVICE', ['service' => $providerName]);
         }
-
-        /** @var DocumentProvider $provider */
         $provider = $this->providers[$providerName];
-
         $output = $provider->showDocument([
             'docConfig' => $docConfig,
             'entry' => $entry,
             'documentUrl' => $documentUrl,
             'wiki' => $this->wiki
         ]);
+
         $titre = $entry['bf_titre'] ?? _t('DOCUMENTS_UNKNOWN_TITLE');
         $statut = $entry['bf_statut'] ?? _t('DOCUMENTS_UNKNOWN_STATUS');
         if ($statut !== _t('DOCUMENTS_UNKNOWN_STATUS')) {

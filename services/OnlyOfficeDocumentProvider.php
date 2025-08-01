@@ -9,6 +9,7 @@ use YesWiki\Bazar\Service\EntryManager;
 use YesWiki\Bazar\Service\FormManager;
 use YesWiki\Bazar\Service\ListManager;
 use YesWiki\Wiki;
+use Firebase\JWT\JWT;
 
 class OnlyOfficeDocumentProvider extends DocumentProvider
 {
@@ -42,9 +43,19 @@ class OnlyOfficeDocumentProvider extends DocumentProvider
         return $config;
     }
 
-    public function createDocument(array $data)
+    /*
+     * @param array $docConfig La configuration du document.
+     * @param array $entry Les données de l'entrée Bazar.
+     * @return string L'URL du document créé.
+     */
+    public function createDocument(array $docConfig, array $entry)
     {
-        return;
+        $name = $this->createDocumentId($title);
+        $generatedFileName = "files/{$name}.{$docConfig['options']['filetype']}";
+        copy("tools/documents/assets/new.{$docConfig['options']['filetype']}", $generatedFileName);
+        $generatedUrl = "{$this->getWiki()->getConfigValue("base_url")}";
+        $generatedUrl = str_replace('/?', "/{$generatedFileName}", $generatedUrl);
+        return $generatedUrl;
     }
     public function getDefaultInstance(): array
     {
