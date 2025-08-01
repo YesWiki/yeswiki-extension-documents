@@ -70,6 +70,14 @@ class OnlyOfficeDocumentProvider extends DocumentProvider
 
         if ($docConfig['iframe'] === true) {
             $doc = pathinfo($documentUrl);
+            $docTypes = [
+              'docx' => 'word',
+              'pdf' => 'pdf',
+              'xlsx' => 'cell',
+              'pptx' => 'slide',
+              'md' => 'word',
+              'vsdx' => 'diagram'
+            ];
             $config = [
                         'document' => [
                             "fileType" => $doc['extension'],
@@ -90,13 +98,13 @@ class OnlyOfficeDocumentProvider extends DocumentProvider
                             ],
                             "lang" => $GLOBALS['prefered_language'] ?? 'fr',
                         ],
-                        'documentType' => 'word',
+                        'documentType' => $docTypes[$doc['filename']],
                         'height' => '1000px',
                         'width' => '100%',
                     ];
             $config['token'] = JWT::encode($config, $this->wiki->config['documentsCredentials'][$docConfig['provider-name']], 'HS256');
             $jsconfig = json_encode($config);
-            $output .= <<<HTML
+            return <<<HTML
 <div id="onlyoffice-doc-{$doc['filename']}"></div>
 <script type="text/javascript" src="{$docConfig['url']}/web-apps/apps/api/documents/api.js"></script>
 <script>
