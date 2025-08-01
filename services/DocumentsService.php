@@ -57,6 +57,7 @@ class DocumentsService
         $result = [];
         foreach ($config as $key => $value) {
             if (is_array($value) && isset($value['label'], $value['description'], $value['url'], $value['service'])) {
+                $key = strtolower($key);
                 $result[$key] = [
                     'provider-name' => $key,
                     'service' => $value['service'],
@@ -153,9 +154,9 @@ class DocumentsService
             return _t('DOCUMENTS_NO_URL_GENERATED');
         }
 
-        $providerName = ucfirst($docConfig['service']);
+        $providerName = strtolower($docConfig['service']);
         if (!isset($this->providers[$providerName])) {
-            return _t('DOCUMENTS_UNSUPPORTED_SERVICE', ['service' => $docConfig['service']]);
+            return _t('DOCUMENTS_UNSUPPORTED_SERVICE', ['service' => $providerName]);
         }
 
         /** @var DocumentProvider $provider */
