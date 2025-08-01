@@ -58,15 +58,15 @@ class DocumentsService
         foreach ($config as $key => $value) {
             if (is_array($value) && isset($value['label'], $value['description'], $value['url'], $value['service'])) {
                 $result[$key] = [
-                  'provider-name' => $key,
-                  'service' => $value['service'],
-                  'label' => $value['label'],
-                  'description' => $value['description'],
-                  'url' => $value['url'],
-                  'iframe' => $value['iframe'] ?? false,
-                  'need-credentials' => $value['need-credentials'] ?? false,
-                  'options' => $value['options'] ?? [],
-              ];
+                    'provider-name' => $key,
+                    'service' => $value['service'],
+                    'label' => $value['label'],
+                    'description' => $value['description'],
+                    'url' => $value['url'],
+                    'iframe' => $value['iframe'] ?? false,
+                    'need-credentials' => $value['need-credentials'] ?? false,
+                    'options' => $value['options'] ?? [],
+                ];
             } else {
                 die(_t(
                     'DOCUMENTS_INVALID_CONFIG_ERROR',
@@ -153,7 +153,7 @@ class DocumentsService
             return _t('DOCUMENTS_NO_URL_GENERATED');
         }
 
-        $providerName = $docConfig['provider-name'];
+        $providerName = ucfirst($docConfig['service']);
         if (!isset($this->providers[$providerName])) {
             return _t('DOCUMENTS_UNSUPPORTED_SERVICE', ['service' => $docConfig['service']]);
         }
