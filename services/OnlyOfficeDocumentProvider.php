@@ -50,10 +50,10 @@ class OnlyOfficeDocumentProvider extends DocumentProvider
      */
     public function createDocument(array $docConfig, array $entry)
     {
-        $name = $this->createDocumentId($title);
+        $name = $this->createDocumentId($entry['bf_titre']);
         $generatedFileName = "files/{$name}.{$docConfig['options']['filetype']}";
         copy("tools/documents/assets/new.{$docConfig['options']['filetype']}", $generatedFileName);
-        $generatedUrl = "{$this->getWiki()->getConfigValue("base_url")}";
+        $generatedUrl = $this->wiki->config["base_url"];
         $generatedUrl = str_replace('/?', "/{$generatedFileName}", $generatedUrl);
         return $generatedUrl;
     }
