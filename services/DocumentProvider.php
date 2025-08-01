@@ -36,7 +36,7 @@ abstract class DocumentProvider
         $this->formManager = $formManager;
         $this->listManager = $listManager;
         $this->wiki = $wiki;
-        $config = $this->checkConfig($params->get('dataSources'));
+        $config = $this->checkConfig($params->get('documentsType') ?? []);
         $this->config = $config;
     }
 
