@@ -12,15 +12,6 @@ use YesWiki\Wiki;
 
 class MemoDocumentProvider extends DocumentProvider
 {
-    protected $params;
-    protected $services;
-    protected $entryManager;
-    protected $formManager;
-    protected $listManager;
-    protected $wiki;
-    protected $config;
-
-
     public function __construct(
         ParameterBagInterface $params,
         ContainerInterface $services,
@@ -29,14 +20,7 @@ class MemoDocumentProvider extends DocumentProvider
         ListManager $listManager,
         Wiki $wiki
     ) {
-        $this->params = $params;
-        $this->services = $services;
-        $this->entryManager = $entryManager;
-        $this->formManager = $formManager;
-        $this->listManager = $listManager;
-        $this->wiki = $wiki;
-        $config = $this->checkConfig($params->get('dataSources'));
-        $this->config = $config;
+        parent::__construct($params, $services, $entryManager, $formManager, $listManager, $wiki);
     }
 
     /**
@@ -51,8 +35,19 @@ class MemoDocumentProvider extends DocumentProvider
 
     public function createDocument(array $data)
     {
-        return;
+        $title = $data['bf_titre'] ?? 'Nouveau mémo';
+        $docConfigKey = $data['bf_documents'];
+        $defaultInstances = $this->getDefaultInstance();
+        $config = $defaultInstances[$docConfigKey] ?? null;
+
+        if (!$config || !isset($config['url'])) {
+            throw new \RuntimeException("Configuration Memo invalide ou manquante.");
+        }
+        $baseUrl = rtrim($config['url'], '/');
+        $generatedUrl = "{$baseUrl}/new/".$this->createDocumentId($title, 35); 
+        return $generatedUrl;
     }
+    
     public function getDefaultInstance(): array
     {
         return [
@@ -61,18 +56,24 @@ class MemoDocumentProvider extends DocumentProvider
               'label' => _t('DOCUMENTS_MEMO_LABEL'),
               'description' => _t('DOCUMENTS_MEMO_DESCRIPTION'),
               'url' => 'https://memo.yeswiki.pro/',
-              'iframe' => false,
+              'iframe' => true,
           ],
         ];
     }
+
+    /**
+     * Affiche un document Memo.
+     * @param array $data Contient 'docConfig', 'entry', 'documentUrl', 'wiki'.
+     * @return string Le HTML pour l'affichage Memo.
+     */
     public function showDocument(array $data)
     {
-        return;
-    }
+        $docConfig = $data['docConfig'];
+        $documentUrl = $data['documentUrl'];
 
-    // HELPERS
-    protected function getService($class)
-    {
-        return $this->services->get($class);
+        if ($docConfig['iframe'] === true) {
+            return "<iframe src='{$documentUrl}' style='width: 100%; height: 1000px; border: none;'></iframe>";
+        }
+        return "<a target='_blank' href='{$documentUrl}'>Cliquer pour ouvrir le document Memo</a>";
     }
 }

@@ -12,14 +12,6 @@ use YesWiki\Wiki;
 
 class EtherpadDocumentProvider extends DocumentProvider
 {
-    protected $params;
-    protected $services;
-    protected $entryManager;
-    protected $formManager;
-    protected $listManager;
-    protected $wiki;
-    protected $config;
-
 
     public function __construct(
         ParameterBagInterface $params,
@@ -29,14 +21,7 @@ class EtherpadDocumentProvider extends DocumentProvider
         ListManager $listManager,
         Wiki $wiki
     ) {
-        $this->params = $params;
-        $this->services = $services;
-        $this->entryManager = $entryManager;
-        $this->formManager = $formManager;
-        $this->listManager = $listManager;
-        $this->wiki = $wiki;
-        $config = $this->checkConfig($params->get('dataSources'));
-        $this->config = $config;
+        parent::__construct($params, $services, $entryManager, $formManager, $listManager, $wiki);
     }
 
     /**
@@ -44,17 +29,28 @@ class EtherpadDocumentProvider extends DocumentProvider
      * @param array $config
      * @return array $config checked config
      */
-    public function checkConfig(array $config)
+    public function checkConfig(array $config) //
     {
         return $config;
     }
 
+    /**
+     * Crée un nouveau document Etherpad et retourne son URL.
+     * @param array $entry Les données de l'entrée Bazar.
+     * @return string L'URL du document créé.
+     */
     public function createDocument(array $entry)
     {
-        dump($this->wiki->config, $entry['bf_documents']);
-        exit;
-        $baseUrl = rtrim($this->documentsType[$documentTypeKey]['url'], '/');
-        $generatedUrl = "{$baseUrl}/p/".$this->createDocumentId($entry['bf_titre'], 35);
+        $defaultInstances = $this->getDefaultInstance();
+        $config = $defaultInstances[$docConfigKey] ?? null;
+
+        if (!$config || !isset($config['url'])) {
+            throw new \RuntimeException("Configuration Etherpad invalide ou manquante.");
+        }
+
+        $baseUrl = rtrim($config['url'], '/');
+        $title = $entry['bf_titre'] ?? 'Nouveau document';
+        $generatedUrl = "{$baseUrl}/p/".$this->createDocumentId($title, 35);
         return $generatedUrl;
     }
 
@@ -70,14 +66,20 @@ class EtherpadDocumentProvider extends DocumentProvider
           ]
         ];
     }
+
+    /**
+     * Affiche un document Etherpad.
+     * @param array $data Contient 'docConfig', 'entry', 'documentUrl', 'wiki'.
+     * @return string Le HTML pour l'iframe Etherpad.
+     */
     public function showDocument(array $data)
     {
-        return;
-    }
+        $docConfig = $data['docConfig'];
+        $documentUrl = $data['documentUrl'];
 
-    // HELPERS
-    protected function getService($class)
-    {
-        return $this->services->get($class);
+        if ($docConfig['iframe'] === true) {
+            return "<iframe src='{$documentUrl}' style='width: 100%; height: 1000px; border: none;'></iframe>"; //
+        }
+        return "<a target='_blank' href='{$documentUrl}'>Cliquer pour ouvrir le document Etherpad</a>";
     }
 }

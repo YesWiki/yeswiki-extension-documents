@@ -8,7 +8,7 @@ use YesWiki\Bazar\Service\EntryManager;
 use YesWiki\Bazar\Service\FormManager;
 use YesWiki\Wiki;
 use YesWiki\Bazar\Service\ListManager;
-use Firebase\JWT\JWT;
+use Firebase\JWT\JWT; 
 
 class DocumentsService
 {
@@ -44,8 +44,8 @@ class DocumentsService
         } else {
             $this->initDocumentsConfig($this->documentsDefault);
         }
-        dump($this->providers);
-        $this->providers['Etherpad']->createDocument(['bf_documents' => 'etherpad']);
+        // dump($this->providers);
+        // $this->providers['Etherpad']->createDocument(['bf_documents' => 'etherpad']);
     }
 
     /** initiDocumentsConfig() - validate config and add default values, if needed.
@@ -113,7 +113,7 @@ class DocumentsService
         $available = $this->getAvailableDocumentProviders();
         $docProviderClasses = [];
         foreach ($available as $docProvider => $className) {
-            if (!empty($className) && class_exists($className, false)) {
+            if (!empty($className) && class_exists($className)) {
                 $docProviderClasses[$docProvider] = new $className(
                     $this->params,
                     $this->services,
@@ -122,6 +122,9 @@ class DocumentsService
                     $this->listManager,
                     $this->wiki
                 );
+            } else {
+                 // Gérer le cas où la classe n'existe pas, peut-être loguer ou lancer une exception
+                error_log("DocumentProvider class not found: {$className}");
             }
         }
         return $docProviderClasses;
@@ -136,67 +139,40 @@ class DocumentsService
         return $defaults;
     }
 
+    /**
+     * Affiche un document en déléguant au fournisseur approprié.
+     * @param array $docConfig Configuration du type de document (issue de documentsType).
+     * @param array $entry Données de l'entrée Bazar associée au document.
+     * @return string Le HTML généré pour afficher le document.
+     */
     public function showDocument($docConfig, array $entry = [])
     {
         $documentUrl = $entry['bf_document_url'] ?? null;
         if (empty($documentUrl)) {
-
             return _t('DOCUMENTS_NO_URL_GENERATED');
         }
-        $output = '';
 
-        if ($docConfig['service'] == 'onlyoffice') {
-            $doc = pathinfo($documentUrl);
-            $config = [
-                        'document' => [
-                            "fileType" => $doc['extension'],
-                            "key" => $doc['filename'],
-                            "title" => $doc['basename'],
-                            "url" => $documentUrl,
-                        ],
-                        'editorConfig' => [
-                            'callbackUrl' => $this->wiki->href('onlyoffice', '', 'filename='.$doc['basename'], false),
-                            "user" => [
-                                "id" => $this->wiki->GetUsername(),
-                                "name" => $this->wiki->GetUsername(),
-                            ],
-                            "customization" => [
-                                "features" => [
-                                    "featuresTips" => false
-                                ]
-                            ],
-                            "lang" => $GLOBALS['prefered_language'] ?? 'fr',
-                        ],
-                        'documentType' => 'word',
-                        'height' => '1000px',
-                        'width' => '100%',
-                    ];
-            $config['token'] = JWT::encode($config, $this->wiki->config['documentsCredentials'][$entry['bf_documents']], 'HS256');
-            $jsconfig = json_encode($config);
-            $output .= <<<HTML
-<div id="onlyoffice-doc"></div>
-<script type="text/javascript" src="{$docConfig['url']}/web-apps/apps/api/documents/api.js"></script>
-<script>
-const config = {$jsconfig};
-const docEditor = new DocsAPI.DocEditor("onlyoffice-doc", config);
-
-</script>
-HTML;
-        } else {
-
-            $titre = $entry['bf_titre'] ?? _t('DOCUMENTS_UNKNOWN_TITLE');
-
-            $statut = $entry['bf_statut'] ?? _t('DOCUMENTS_UNKNOWN_STATUS');
-
-            if ($docConfig['iframe'] === true) {
-                $output .= "<iframe src='{$documentUrl}' style='width: 100%; height: 1000px; border: none;'></iframe>";
-            }
-
-            $baseUrl = rtrim($this->wiki->config['base_url'], '/');
-            $editLink = "{$baseUrl}{$entry['id_fiche']}/edit";
-
-            $output .= "<small><a target='_blank' href='{$documentUrl}'><b>{$titre} </b></a> (" . "{$docConfig['label']} - " . _t('DOCUMENTS_STATUS') . ": {$statut}) <a target='_blank' href='{$editLink}'>" . _t('DOCUMENTS_MODIFY') . "</a></small>";
+        $providerName = ucfirst($docConfig['service']);
+        if (!isset($this->providers[$providerName])) {
+            return _t('DOCUMENTS_UNSUPPORTED_SERVICE', ['service' => $docConfig['service']]);
         }
+
+        /** @var DocumentProvider $provider */
+        $provider = $this->providers[$providerName];
+
+        $output = $provider->showDocument([
+            'docConfig' => $docConfig,
+            'entry' => $entry,
+            'documentUrl' => $documentUrl,
+            'wiki' => $this->wiki
+        ]);
+        $titre = $entry['bf_titre'] ?? _t('DOCUMENTS_UNKNOWN_TITLE');
+        $statut = $entry['bf_statut'] ?? _t('DOCUMENTS_UNKNOWN_STATUS');
+        $baseUrl = rtrim($this->wiki->config['base_url'], '/');
+        $editLink = "{$baseUrl}/{$entry['id_fiche']}/edit";
+
+        $output .= "<small><a target='_blank' href='{$documentUrl}'><b>{$titre} </b></a> (" . "{$docConfig['label']} - " . _t('DOCUMENTS_STATUS') . ": {$statut}) <a target='_blank' href='{$editLink}'>" . _t('DOCUMENTS_MODIFY') . "</a></small>";
+
         return $output;
     }
 }

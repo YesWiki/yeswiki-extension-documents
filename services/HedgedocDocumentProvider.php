@@ -12,15 +12,6 @@ use YesWiki\Wiki;
 
 class HedgedocDocumentProvider extends DocumentProvider
 {
-    protected $params;
-    protected $services;
-    protected $entryManager;
-    protected $formManager;
-    protected $listManager;
-    protected $wiki;
-    protected $config;
-
-
     public function __construct(
         ParameterBagInterface $params,
         ContainerInterface $services,
@@ -29,14 +20,7 @@ class HedgedocDocumentProvider extends DocumentProvider
         ListManager $listManager,
         Wiki $wiki
     ) {
-        $this->params = $params;
-        $this->services = $services;
-        $this->entryManager = $entryManager;
-        $this->formManager = $formManager;
-        $this->listManager = $listManager;
-        $this->wiki = $wiki;
-        $config = $this->checkConfig($params->get('dataSources'));
-        $this->config = $config;
+        parent::__construct($params, $services, $entryManager, $formManager, $listManager, $wiki);
     }
 
     /**
@@ -51,8 +35,19 @@ class HedgedocDocumentProvider extends DocumentProvider
 
     public function createDocument(array $data)
     {
-        return;
+        $title = $data['bf_titre'] ?? 'Nouveau document Hedgedoc';
+        $docConfigKey = $data['bf_documents'];
+        $defaultInstances = $this->getDefaultInstance();
+        $config = $defaultInstances[$docConfigKey] ?? null;
+
+        if (!$config || !isset($config['url'])) {
+            throw new \RuntimeException("Configuration Hedgedoc invalide ou manquante.");
+        }
+        $baseUrl = rtrim($config['url'], '/');
+        $generatedUrl = "{$baseUrl}/".$this->createDocumentId($title, 35);
+        return $generatedUrl;
     }
+    
     public function getDefaultInstance(): array
     {
         return [
@@ -61,18 +56,24 @@ class HedgedocDocumentProvider extends DocumentProvider
                 'label' => _t('DOCUMENTS_HEDGEDOC_LABEL'),
                 'description' => _t('DOCUMENTS_HEDGEDOC_DESCRIPTION'),
                 'url' => 'https://md.yeswiki.net',
-                'iframe' => false,
+                'iframe' => true,
             ],
         ];
     }
+
+    /**
+     * Affiche un document Hedgedoc.
+     * @param array $data Contient 'docConfig', 'entry', 'documentUrl', 'wiki'.
+     * @return string Le HTML pour l'affichage Hedgedoc.
+     */
     public function showDocument(array $data)
     {
-        return;
-    }
+        $docConfig = $data['docConfig'];
+        $documentUrl = $data['documentUrl'];
 
-    // HELPERS
-    protected function getService($class)
-    {
-        return $this->services->get($class);
+        if ($docConfig['iframe'] === true) {
+            return "<iframe src='{$documentUrl}' style='width: 100%; height: 1000px; border: none;'></iframe>";
+        }
+        return "<a target='_blank' href='{$documentUrl}'>Cliquer pour ouvrir le document Hedgedoc</a>";
     }
 }
