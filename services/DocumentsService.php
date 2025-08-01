@@ -104,7 +104,7 @@ class DocumentsService
         $docProviders = [];
         foreach ($services as $serv) {
             $short = explode('Service\\', $serv)[1];
-            $shortClass = str_replace(['DocumentProvider'], '', $short);
+            $shortClass = strtolower(str_replace(['DocumentProvider'], '', $short));
             $docProviders[$shortClass] = $serv;
         }
         return $docProviders;
