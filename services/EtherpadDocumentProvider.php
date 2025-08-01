@@ -63,21 +63,5 @@ class EtherpadDocumentProvider extends DocumentProvider
           ]
         ];
     }
-
-    /**
-     * Affiche un document Etherpad.
-     * @param array $data Contient 'docConfig', 'entry', 'documentUrl', 'wiki'.
-     * @return string Le HTML pour l'iframe Etherpad.
-     */
-    public function showDocument(array $data)
-    {
-        $docConfig = $data['docConfig'];
-        $documentUrl = $data['documentUrl'];
-
-        if ($docConfig['iframe'] === true) {
-            return "<iframe src='{$documentUrl}' style='width: 100%; height: 1000px; border: none;'></iframe>"; //
-        }
-        return "<a target='_blank' href='{$documentUrl}'>Cliquer pour ouvrir le document Etherpad</a>";
-    }
 }
 
