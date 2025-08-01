@@ -8,7 +8,7 @@ use YesWiki\Bazar\Service\EntryManager;
 use YesWiki\Bazar\Service\FormManager;
 use YesWiki\Wiki;
 use YesWiki\Bazar\Service\ListManager;
-use Firebase\JWT\JWT; 
+use Firebase\JWT\JWT;
 
 class DocumentsService
 {
@@ -123,7 +123,7 @@ class DocumentsService
                     $this->wiki
                 );
             } else {
-                 // Gérer le cas où la classe n'existe pas, peut-être loguer ou lancer une exception
+                // Gérer le cas où la classe n'existe pas, peut-être loguer ou lancer une exception
                 error_log("DocumentProvider class not found: {$className}");
             }
         }
@@ -168,11 +168,16 @@ class DocumentsService
         ]);
         $titre = $entry['bf_titre'] ?? _t('DOCUMENTS_UNKNOWN_TITLE');
         $statut = $entry['bf_statut'] ?? _t('DOCUMENTS_UNKNOWN_STATUS');
+        if ($statut !== _t('DOCUMENTS_UNKNOWN_STATUS')) {
+            $statusLabel = $this->listManager->getLabel('ListStatut', $statut);
+            $statut = empty($statusLabel) ? _t('DOCUMENTS_UNKNOWN_STATUS') : $statusLabel;
+        }
         $baseUrl = rtrim($this->wiki->config['base_url'], '/');
-        $editLink = "{$baseUrl}/{$entry['id_fiche']}/edit";
+        $editLink = $this->wiki->href('edit', $entry['id_fiche'], 'incomingurl='.$this->wiki->href());
 
-        $output .= "<small><a target='_blank' href='{$documentUrl}'><b>{$titre} </b></a> (" . "{$docConfig['label']} - " . _t('DOCUMENTS_STATUS') . ": {$statut}) <a target='_blank' href='{$editLink}'>" . _t('DOCUMENTS_MODIFY') . "</a></small>";
+        $output .= "<small><a target='_blank' href='{$documentUrl}'><b>{$titre} </b></a> (" . "{$docConfig['label']} - " . _t('DOCUMENTS_STATUS') . ": {$statut}) <a href='{$editLink}'>" . _t('DOCUMENTS_MODIFY') . "</a></small>";
 
         return $output;
     }
 }
+

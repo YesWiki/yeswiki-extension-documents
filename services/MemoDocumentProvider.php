@@ -44,10 +44,10 @@ class MemoDocumentProvider extends DocumentProvider
             throw new \RuntimeException("Configuration Memo invalide ou manquante.");
         }
         $baseUrl = rtrim($config['url'], '/');
-        $generatedUrl = "{$baseUrl}/new/".$this->createDocumentId($title, 35); 
+        $generatedUrl = "{$baseUrl}/new/".$this->createDocumentId($title, 35);
         return $generatedUrl;
     }
-    
+
     public function getDefaultInstance(): array
     {
         return [
@@ -60,20 +60,5 @@ class MemoDocumentProvider extends DocumentProvider
           ],
         ];
     }
-
-    /**
-     * Affiche un document Memo.
-     * @param array $data Contient 'docConfig', 'entry', 'documentUrl', 'wiki'.
-     * @return string Le HTML pour l'affichage Memo.
-     */
-    public function showDocument(array $data)
-    {
-        $docConfig = $data['docConfig'];
-        $documentUrl = $data['documentUrl'];
-
-        if ($docConfig['iframe'] === true) {
-            return "<iframe src='{$documentUrl}' style='width: 100%; height: 1000px; border: none;'></iframe>";
-        }
-        return "<a target='_blank' href='{$documentUrl}'>Cliquer pour ouvrir le document Memo</a>";
-    }
 }
+

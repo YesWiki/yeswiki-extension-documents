@@ -35,6 +35,7 @@ $GLOBALS['translations'] = array_merge(
         'DOCUMENTS_BAD_REQUEST' => 'Bad Request',
         'DOCUMENTS_BAD_RESPONSE' => 'Bad Response',
         'DOCUMENTS_ACTION_NO_PREVIEW' => 'L\'action {{document}} ne peut pas être prévisualisée',
+        'DOCUMENTS_OPEN_DOCUMENT' => 'Ouvrir le document',
         'AB_document_action_type_label' => 'Type de document',
         'AB_document_action_etherpad' => 'Etherpad',
         'AB_document_action_hedgedoc' => 'HedgeDoc',
@@ -44,3 +45,4 @@ $GLOBALS['translations'] = array_merge(
         'AB_document_action_id_hint' => 'Si non renseigné, un nouveau document sera généré.',
     )
 );
+

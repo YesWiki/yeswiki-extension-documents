@@ -94,14 +94,4 @@ class OnlyOfficeDocumentProvider extends DocumentProvider
           /* ], */
         ];
     }
-    public function showDocument(array $data)
-    {
-        return;
-    }
-
-    // HELPERS
-    protected function getService($class)
-    {
-        return $this->services->get($class);
-    }
 }

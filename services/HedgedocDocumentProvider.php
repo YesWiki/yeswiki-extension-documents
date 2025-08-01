@@ -47,7 +47,7 @@ class HedgedocDocumentProvider extends DocumentProvider
         $generatedUrl = "{$baseUrl}/".$this->createDocumentId($title, 35);
         return $generatedUrl;
     }
-    
+
     public function getDefaultInstance(): array
     {
         return [
@@ -60,20 +60,5 @@ class HedgedocDocumentProvider extends DocumentProvider
             ],
         ];
     }
-
-    /**
-     * Affiche un document Hedgedoc.
-     * @param array $data Contient 'docConfig', 'entry', 'documentUrl', 'wiki'.
-     * @return string Le HTML pour l'affichage Hedgedoc.
-     */
-    public function showDocument(array $data)
-    {
-        $docConfig = $data['docConfig'];
-        $documentUrl = $data['documentUrl'];
-
-        if ($docConfig['iframe'] === true) {
-            return "<iframe src='{$documentUrl}' style='width: 100%; height: 1000px; border: none;'></iframe>";
-        }
-        return "<a target='_blank' href='{$documentUrl}'>Cliquer pour ouvrir le document Hedgedoc</a>";
-    }
 }
+

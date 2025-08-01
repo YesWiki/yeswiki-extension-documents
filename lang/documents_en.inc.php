@@ -35,6 +35,7 @@ $GLOBALS['translations'] = array_merge(
         'DOCUMENTS_BAD_REQUEST' => 'Bad Request',
         'DOCUMENTS_BAD_RESPONSE' => 'Bad Response',
         'DOCUMENTS_ACTION_NO_PREVIEW' => 'The action {{document}} cannot be previewed',
+        'DOCUMENTS_OPEN_DOCUMENT' => 'Open document',
         'AB_document_action_type_label' => 'Document type',
         'AB_document_action_etherpad' => 'Etherpad',
         'AB_document_action_hedgedoc' => 'HedgeDoc',
