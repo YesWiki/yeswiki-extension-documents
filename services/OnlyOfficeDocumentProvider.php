@@ -29,14 +29,7 @@ class OnlyOfficeDocumentProvider extends DocumentProvider
         ListManager $listManager,
         Wiki $wiki
     ) {
-        $this->params = $params;
-        $this->services = $services;
-        $this->entryManager = $entryManager;
-        $this->formManager = $formManager;
-        $this->listManager = $listManager;
-        $this->wiki = $wiki;
-        $config = $this->checkConfig($params->get('dataSources'));
-        $this->config = $config;
+        parent::__construct($params, $services, $entryManager, $formManager, $listManager, $wiki);
     }
 
     /**
