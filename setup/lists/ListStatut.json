@@ -1,0 +1,20 @@
+{
+  "title": "statut",
+  "nodes": [
+    {
+      "label": "en cour de r\u00e9daction",
+      "id": "en_cour_de_redaction",
+      "children": []
+    },
+    {
+      "label": "finalis\u00e9",
+      "id": "finalise",
+      "children": []
+    },
+    {
+      "label": "archiv\u00e9",
+      "id": "archive",
+      "children": []
+    }
+  ]
+}

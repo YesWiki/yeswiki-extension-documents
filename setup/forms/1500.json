@@ -1,0 +1,13 @@
+{
+  "bn_id_nature": "1500",
+  "bn_label_nature": "Documents collaboratifs",
+  "bn_description": "Documents collaboratifs",
+  "bn_condition": "",
+  "bn_sem_context": "",
+  "bn_sem_type": "",
+  "bn_sem_use_template": "0",
+  "bn_template": "texte***bf_titre***Titre du document*** *** *** *** ***text***1*** *** *** * *** * *** *** *** ***\r\ntextelong***bf_description***Description*** *** *** *** ***wiki***0*** *** *** * *** * *** *** *** ***\r\nliste***ListStatut***Statut*** *** ***en_cour_de_redaction***bf_statut*** ***1*** *** *** * *** * *** *** *** ***\r\nlistedatedeb***bf_echeance***Date d'échéance*** *** ***today*** *** ***0*** *** *** * *** * *** *** *** ***\r\ntags***bf_tags***Mots clés*** *** *** *** *** ***0*** *** *** * *** * *** *** *** ***\r\ntexte***bf_auteur***Auteur*** *** *** *** ***text***0*** *** *** * *** * *** *** *** ***\r\ndocuments***bf_documents***Choisir le type de document***true*** *** *** *** *** *** *** *** *** *** *** *** ***\r\n",
+  "bn_ce_i18n": "fr-FR",
+  "bn_only_one_entry": "N",
+  "bn_only_one_entry_message": ""
+}
