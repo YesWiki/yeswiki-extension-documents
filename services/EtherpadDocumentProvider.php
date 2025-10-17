@@ -24,7 +24,7 @@ class EtherpadDocumentProvider extends DocumentProvider
     }
 
     /**
-     * Check if config input is good enough to be used by Importer
+     * Check if config input is good enough to be used by DocumentProvider
      * @param array $config
      * @return array $config checked config
      */
@@ -46,7 +46,7 @@ class EtherpadDocumentProvider extends DocumentProvider
         }
 
         $baseUrl = rtrim($docConfig['url'], '/');
-        $title = $entry['bf_titre'] ?? 'Nouveau document';
+        $title = $entry['bf_titre'] ?? _t('DOCUMENTS_ETHERPAD_NEW');
         $generatedUrl = "{$baseUrl}/p/".$this->createDocumentId($title, 35);
         return $generatedUrl;
     }

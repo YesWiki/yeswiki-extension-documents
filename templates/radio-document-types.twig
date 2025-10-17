@@ -1,0 +1,25 @@
+{% extends "@bazar/layouts/input.twig" %}
+
+{% block input %}
+  <div class="bazar-radio-rows bazar-radio{{ field.required ? ' radio_required' : ''}}"
+    {% for key, option in options %}
+      {% if value == key %}
+        {% block radioInput %}
+          <div class="radio">
+            <label for="{{ field.propertyName ~ '[documentType]' ~ '_' ~ key }}">
+              <input class="element_radio" type="radio" id="{{ field.propertyName ~ '[documentType]' ~ '_' ~ key }}" 
+                     value="{{ key }}" name="{{ field.propertyName }}[documentType]" 
+                     {% if value == key %}checked data-default="checked"{% endif %} />
+                <span>{{ option|raw }}</span>
+            </label>
+          </div>
+        {% endblock %}
+      {% endif %}
+    {% endfor %}
+    {% for key, option in options %}
+      {% if value != key %}
+        {{ block('radioInput') }}
+      {% endif %}
+    {% endfor %}
+  </div>
+{% endblock %}

@@ -23,25 +23,25 @@ class DocumentsField extends BazarField
 
     protected function renderInput($entry)
     {
-        if (!empty($entry['bf_document_url'])) {
+        if (!empty($entry[$this->propertyName])) {
+          if (!empty($entry[$this->propertyName]['documentUrl'])) {
             return "
                 <div class='control-group form-group input-text input text'>
                     <label class='control-label col-sm-3'>" . _t('DOCUMENTS_LINK_ACCESS') . "</label>
-                    <div class='controls col-sm-9'>
-                        <div class='input-group'>
-                            <input class='form-control input-xxlarge' name='bf_document_url' value={$entry['bf_document_url']} readonly />
-                            <input type='hidden' name='bf_documents' value={$entry['bf_documents']} />
-                        </div>
+                    <div class='controls col-sm-9'>"._t('DOCUMENTS_URL').": {$entry[$this->propertyName]['documentUrl']}
                     </div>
-                </div>
-            ";
+                </div>";
+
+          } else {
+            return '<div class="alert alert-danger">'._t('DOCUMENTS_URL_NOT_FOUND').'.</div>';
+          }
         }
         $options = [];
         foreach ($this->documentsType as $key => $type) {
             $options[$key] = "<h4>{$type['label']} <small> {$type['url']} </small> </h4>
                                     <p>{$type['description']}</p>";
         }
-        return $this->render('@bazar/inputs/radio.twig', [
+        return $this->render('@documents/radio-document-types.twig', [
             'options' => $options,
             'value' => $this->getValue($entry),
             'displayFilterLimit' => false
@@ -50,25 +50,33 @@ class DocumentsField extends BazarField
 
     protected function renderStatic($entry)
     {
-        return $this->service->showDocument(
-            $this->documentsType[$entry['bf_documents']] ?? null,
-            $entry ?? null
+      return $this->service->showDocument(
+            $this->documentsType[$entry[$this->propertyName]['documentType']] ?? null,
+            $entry ?? [],
+            $this->propertyName,
         );
     }
 
+    public function getValueStructure()
+    {
+      return [$this->propertyName => [
+        'documentType' => ['_mode_' => 'single', '_type_' => 'string'],
+        'documentUrl' => ['_mode_' => 'single', '_type_' => 'string'],
+      ]
+      ];
+    }
 
     public function formatValuesBeforeSave($entry)
     {
-        $documentTypeKey = $entry['bf_documents'] ?? null;
-        $title = $entry['bf_titre'] ?? '';
-        $generatedUrl = '';
+        $documentTypeKey = $entry[$this->propertyName]['documentType'] ?? null;
 
-        if (!empty($entry['bf_document_url'])) {
+        // the document was already created
+        if (!empty($entry[$this->propertyName]['documentUrl'])) {
             return $entry;
         }
 
         if ($documentTypeKey && isset($this->documentsType[$documentTypeKey])) {
-            $entry['bf_document_url'] = $this->service->createDocument(
+            $entry[$this->propertyName]['documentUrl'] = $this->service->createDocument(
                 $this->documentsType[$documentTypeKey],
                 $entry
             );

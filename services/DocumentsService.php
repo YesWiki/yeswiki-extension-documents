@@ -160,9 +160,9 @@ class DocumentsService
      * @param array $entry Données de l'entrée Bazar associée au document.
      * @return string Le HTML généré pour afficher le document.
      */
-    public function showDocument($docConfig, array $entry = [])
+    public function showDocument($docConfig, array $entry = [], $fieldId = '')
     {
-        $documentUrl = $entry['bf_document_url'] ?? null;
+        $documentUrl = $entry[$fieldId]['documentUrl'] ?? null;
         if (empty($documentUrl)) {
             return _t('DOCUMENTS_NO_URL_GENERATED');
         }
