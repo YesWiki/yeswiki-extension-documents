@@ -81,7 +81,7 @@ abstract class DocumentProvider
         $documentUrl = $data['documentUrl'];
 
         if ($docConfig['iframe'] === true) {
-            return "<iframe src='{$documentUrl}' style='width: 100%; height: 1000px; border: none;'></iframe>";
+            return "<iframe src='{$documentUrl}' class='full-width' style='width: 100%; min-height: 1000px; border: none;'></iframe>";
         }
         return "<a target='_blank' class='btn btn-primary btn-xs' href='{$documentUrl}'>"._t('DOCUMENTS_OPEN_DOCUMENT')."</a><br />";
     }
