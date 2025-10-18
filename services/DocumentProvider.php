@@ -86,11 +86,12 @@ abstract class DocumentProvider
   margin-right: -50vw;
   min-height:1000px;
   border:none;
+  margin-bottom: 1em;
 }
 
 .panel .document-full-width {
   width: 100% !important;
-  margin: 0 !important;
+  margin:0 0 1em 0 !important;
   left: 0;
   right: 0;
 }
