@@ -17,7 +17,6 @@ class DocumentsService
     protected $formManager;
     protected $listManager;
     protected $wiki;
-    protected $documentsDefault;
     protected $providers;
 
     public function __construct(
@@ -35,60 +34,45 @@ class DocumentsService
         $this->listManager = $listManager;
         $this->wiki = $wiki;
         $this->providers = $this->instanciateDocumentProviders();
-        $this->documentsDefault = $this->getAllDocumentsDefaults();
-
-        $initialConfig = $this->wiki->config['documentsType'] ?? [];
-        if (!empty($initialConfig)) {
-            $this->initDocumentsConfig($initialConfig);
-        } else {
-            $this->initDocumentsConfig($this->documentsDefault);
-        }
     }
 
-    /** initDocumentsConfig() - validate config and add default values, if needed.
-     *
-     * @return void
-    */
-    public function initDocumentsConfig($config)
+    public function getAvailableServices($config): array 
     {
-        $result = [];
-        foreach ($config as $key => $value) {
-            if (is_array($value) && isset($value['label'], $value['description'], $value['url'], $value['service'])) {
-                $key = strtolower($key);
-                $result[$key] = [
-                    'provider-name' => $key,
-                    'service' => $value['service'],
-                    'label' => $value['label'],
-                    'description' => $value['description'],
-                    'url' => $value['url'],
-                    'iframe' => $value['iframe'] ?? false,
-                    'need-credentials' => $value['need-credentials'] ?? false,
-                    'options' => $value['options'] ?? [],
+      $matches = preg_grep("/^documents(.*)Url$/", array_keys($config));
+      $services = [];
+      foreach ($matches as $ser) {
+        $name = preg_replace('/^documents(.*)Url$/', '$1', $ser);
+        $lowerName = strtolower($name);
+        $services[$lowerName] = $name;
+      }
+      return $services;
+    }
+
+    public function getAllDocumentsService()
+    {
+      $fullServices = [];
+      $availableServices = $this->getAvailableServices($this->wiki->config);
+      foreach($availableServices as $service => $serviceName) {
+        if (!empty($this->wiki->config['documents'.$serviceName.'Url']) && !empty($this->wiki->config['documents'.$serviceName.'Title']) && !empty($this->wiki->config['documents'.$serviceName.'Description'])) {
+                $fullServices[$service] = [
+                    'provider-name' => $service,
+                    'service' => $serviceName,
+                    'label' => $this->wiki->config['documents'.$serviceName.'Title'],
+                    'description' => $this->wiki->config['documents'.$serviceName.'Description'],
+                    'url' => $this->wiki->config['documents'.$serviceName.'Url'],
+                    'iframe' => $this->wiki->config['documents'.$serviceName.'Iframe'] ?? false,
+                    'credentials' => $this->wiki->config['documents'.$serviceName.'Credentials'] ?? false,
                 ];
             } else {
                 die(_t(
                     'DOCUMENTS_INVALID_CONFIG_ERROR',
                     [
-                    'key' => $key
+                    'key' => $service
                 ]
                 ));
             }
-        }
-        foreach ($result as $key => $value) {
-            if ($value['need-credentials']) {
-                $credentials = $this->wiki->config['documentsCredentials'][$key] ?? null;
-                if (empty($credentials)) {
-                    die(_t(
-                        'DOCUMENTS_MISSING_CREDENTIALS_ERROR',
-                        [
-                        'key' => $key,
-                        'value' => $key
-                    ]
-                    ));
-                }
-            }
-        }
-        $this->wiki->config['documentsType'] = $result;
+      }
+      return $fullServices;
     }
 
     public function getAvailableDocumentProviders()
@@ -129,15 +113,6 @@ class DocumentsService
         return $docProviderClasses;
     }
 
-    private function getAllDocumentsDefaults()
-    {
-        $defaults = [];
-        foreach ($this->providers as $name => $provider) {
-            $defaults = array_merge($defaults, $provider->getDefaultInstance());
-        }
-        return $defaults;
-    }
-
     /**
      * Créé un document en déléguant au fournisseur approprié.
      * @param array $docConfig Configuration du type de document (issue de documentsType).
@@ -166,12 +141,10 @@ class DocumentsService
         if (empty($documentUrl)) {
             return _t('DOCUMENTS_NO_URL_GENERATED');
         }
-
-        $providerName = strtolower($docConfig['service']);
-        if (!isset($this->providers[$providerName])) {
-            return _t('DOCUMENTS_UNSUPPORTED_SERVICE', ['service' => $providerName]);
+        if (!isset($this->providers[$docConfig['provider-name']])) {
+            return _t('DOCUMENTS_UNSUPPORTED_SERVICE', ['service' => $docConfig['provider-name']]);
         }
-        $provider = $this->providers[$providerName];
+        $provider = $this->providers[$docConfig['provider-name']];
         $output = $provider->showDocument([
             'docConfig' => $docConfig,
             'entry' => $entry,

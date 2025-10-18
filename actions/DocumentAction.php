@@ -35,7 +35,8 @@ class DocumentAction extends YesWikiAction
         $entryManager = $this->getService(EntryManager::class);
         $pageManager = $this->getService(PageManager::class);
         $formManager = $this->getService(FormManager::class);
-        $availableDocs = array_keys($this->wiki->config['documentsType']);
+        $availableServices = $service->getAllDocumentsService();
+        $availableDocs = array_keys($service->getAvailableServices($this->wiki->config));
         if ($this->wiki->getMethod() == 'render') {
             return('<div class="alert alert-info">'._t('DOCUMENTS_ACTION_NO_PREVIEW').'.</div>');
         }
@@ -58,7 +59,7 @@ class DocumentAction extends YesWikiAction
           $entry = $entryManager->getOne($this->arguments['id']);
             if (!empty($entry) && !empty($entry[$docField]['documentUrl'])) {
                 return $service->showDocument(
-                    $this->wiki->config['documentsType'][$entry[$docField]['documentType']],
+                    $availableServices[$entry[$docField]['documentType']],
                     $entry,
                     $docField
                 );

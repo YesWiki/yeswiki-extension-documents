@@ -19,7 +19,6 @@ abstract class DocumentProvider
     protected $formManager;
     protected $listManager;
     protected $wiki;
-    protected $config;
 
 
     public function __construct(
@@ -36,8 +35,6 @@ abstract class DocumentProvider
         $this->formManager = $formManager;
         $this->listManager = $listManager;
         $this->wiki = $wiki;
-        $config = $this->checkConfig($params->get('documentsType') ?? []);
-        $this->config = $config;
     }
 
     /**

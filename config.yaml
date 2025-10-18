@@ -1,14 +1,53 @@
 parameters:
   documentsFormId: 1500
+  documentsEtherpadUrl: "https://pad.yeswiki.net/"
+  documentsEtherpadTitle: "Document pad collaboratif"
+  documentsEtherpadDescription: "Etherpad hébergé sur yeswiki.net"
+  documentsEtherpadIframe: true
+  documentsMemoUrl: "https://memo.yeswiki.pro/"
+  documentsMemoTitle: "Tableau de post-it"
+  documentsMemoDescription: "Mémo hébergé sur yeswiki.net"
+  documentsMemoIframe: true
+  documentsHedgedocUrl: "https://md.yeswiki.net"
+  documentsHedgedocTitle: "Document markdown collaboratif"
+  documentsHedgedocDescription: "Hedgedoc hébergé sur yeswiki.net"
+  documentsHedgedocIframe: true
+
   # for edit config action
   documents_editable_config_params:
-    - 'documentsFormId'
-    
+    - "documentsFormId"
+    - "documentsEtherpadUrl"
+    - "documentsEtherpadTitle"
+    - "documentsEtherpadDescription"
+    - "documentsEtherpadIframe"
+    - "documentsMemoUrl"
+    - "documentsMemoTitle"
+    - "documentsMemoDescription"
+    - "documentsMemoIframe"
+    - "documentsHedgedocUrl"
+    - "documentsHedgedocTitle"
+    - "documentsHedgedocDescription"
+    - "documentsHedgedocIframe"
+    - "documentsOnlyOfficeDocxUrl"
+    - "documentsOnlyOfficeDocxTitle"
+    - "documentsOnlyOfficeDocxDescription"
+    - "documentsOnlyOfficeDocxIframe"
+    - "documentsOnlyOfficeDocxCredentials"
+    - "documentsOnlyOfficeXlsxUrl"
+    - "documentsOnlyOfficeXlsxTitle"
+    - "documentsOnlyOfficeXlsxDescription"
+    - "documentsOnlyOfficeXlsxIframe"
+    - "documentsOnlyOfficeXlsxCredentials"
+    - "documentsOnlyOfficePptxUrl"
+    - "documentsOnlyOfficePptxTitle"
+    - "documentsOnlyOfficePptxDescription"
+    - "documentsOnlyOfficePptxIframe"
+    - "documentsOnlyOfficePptxCredentials"
+
 services:
   _defaults:
     autowire: true
     public: true
 
   YesWiki\Documents\Service\:
-    resource: 'services/*'
-
+    resource: "services/*"

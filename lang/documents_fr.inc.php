@@ -6,7 +6,7 @@
 
 $GLOBALS['translations'] = array_merge(
     $GLOBALS['translations'],
-    array(
+    [
         'DOCUMENTS_ETHERPAD_LABEL' => 'Etherpad',
         'DOCUMENTS_ETHERPAD_DESCRIPTION' => 'Un document collaboratif simple',
         'DOCUMENTS_ETHERPAD_NEW' => 'Nouveau pad',
@@ -48,5 +48,34 @@ $GLOBALS['translations'] = array_merge(
         'AB_document_action_formid_label' => 'Identifiant de formulaire bazar associé',
         'AB_document_action_id_label' => 'Identifiant de fiche associée (id_fiche)',
         'AB_document_action_id_hint' => 'Si non renseigné, un nouveau document sera généré.',
-    )
+    'EDIT_CONFIG_GROUP_DOCUMENTS' => 'Documents collaboratifs',
+    'EDIT_CONFIG_HINT_DOCUMENTSFORMID' => 'Id de formulaire bazar associé',
+    'EDIT_CONFIG_HINT_DOCUMENTSETHERPADURL' => 'URL du service de pad',
+    'EDIT_CONFIG_HINT_DOCUMENTSETHERPADTITLE' => 'Intitulé de l\'espace de pad',
+    'EDIT_CONFIG_HINT_DOCUMENTSETHERPADDESCRIPTION' => 'Description de l\'espace de pad',
+    'EDIT_CONFIG_HINT_DOCUMENTSETHERPADIFRAME' => 'Affichage en iframe du pad',
+    'EDIT_CONFIG_HINT_DOCUMENTSMEMOURL' => 'URL du service de mémo',
+    'EDIT_CONFIG_HINT_DOCUMENTSMEMOTITLE' => 'Intitulé de l\'espace de mémo',
+    'EDIT_CONFIG_HINT_DOCUMENTSMEMODESCRIPTION' => 'Description de l\'espace de mémo',
+    'EDIT_CONFIG_HINT_DOCUMENTSMEMOIFRAME' => 'Affichage en iframe de mémo',
+    'EDIT_CONFIG_HINT_DOCUMENTSHEDGEDOCURL' => 'URL du service Hedgedoc',
+    'EDIT_CONFIG_HINT_DOCUMENTSHEDGEDOCTITLE' => 'Intitulé de l\'espace Hedgedoc',
+    'EDIT_CONFIG_HINT_DOCUMENTSHEDGEDOCDESCRIPTION' => 'Description de l\'espace Hedgedoc',
+    'EDIT_CONFIG_HINT_DOCUMENTSHEDGEDOCIFRAME' => 'Affichage en iframe d\'Hedgedoc',
+    'EDIT_CONFIG_HINT_DOCUMENTSONLYOFFICEDOCXURL' => 'URL du service d\'OnlyOffice pour les documents',
+    'EDIT_CONFIG_HINT_DOCUMENTSONLYOFFICEDOCXTITLE' => 'Intitulé de l\'espace de documents onlyoffice',
+    'EDIT_CONFIG_HINT_DOCUMENTSONLYOFFICEDOCXDESCRIPTION' => 'Description de l\'espace de documents',
+    'EDIT_CONFIG_HINT_DOCUMENTSONLYOFFICEDOCXIFRAME' => 'Affichage en iframe du doc',
+    'EDIT_CONFIG_HINT_DOCUMENTSONLYOFFICEDOCXCREDENTIALS' => 'Mot de passe ou token pour le service de doc',
+    'EDIT_CONFIG_HINT_DOCUMENTSONLYOFFICEXLSXURL' => 'URL du service d\'OnlyOffice pour les tableurs',
+    'EDIT_CONFIG_HINT_DOCUMENTSONLYOFFICEXLSXTITLE' => 'Intitulé de l\'espace de tableur',
+    'EDIT_CONFIG_HINT_DOCUMENTSONLYOFFICEXLSXDESCRIPTION' => 'Description de l\'espace de tableur',
+    'EDIT_CONFIG_HINT_DOCUMENTSONLYOFFICEXLSXIFRAME' => 'Affichage en iframe du tableur',
+    'EDIT_CONFIG_HINT_DOCUMENTSONLYOFFICEXLSXCREDENTIALS' => 'Mot de passe ou token pour le service de tableur',
+    'EDIT_CONFIG_HINT_DOCUMENTSONLYOFFICEPPTXURL' => 'URL du service d\'OnlyOffice pour les présentations',
+    'EDIT_CONFIG_HINT_DOCUMENTSONLYOFFICEPPTXTITLE' => 'Intitulé de l\'espace de présentation',
+    'EDIT_CONFIG_HINT_DOCUMENTSONLYOFFICEPPTXDESCRIPTION' => 'Description de l\'espace de présentation',
+    'EDIT_CONFIG_HINT_DOCUMENTSONLYOFFICEPPTXIFRAME' => 'Affichage en iframe de la présentation',
+    'EDIT_CONFIG_HINT_DOCUMENTSONLYOFFICEPPTXCREDENTIALS' => 'Mot de passe ou token pour le service de présentation',
+    ]
 );

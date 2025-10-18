@@ -18,7 +18,6 @@ class DocumentsField extends BazarField
     {
         parent::__construct($values, $services);
         $this->service = $this->getService(DocumentsService::class);
-        $this->documentsType = $this->getWiki()->getConfigValue('documentsType');
     }
 
     protected function renderInput($entry)
@@ -37,7 +36,8 @@ class DocumentsField extends BazarField
           }
         }
         $options = [];
-        foreach ($this->documentsType as $key => $type) {
+        $services = $this->service->getAllDocumentsService();
+        foreach ($services as $key => $type) {
             $options[$key] = "<h4>{$type['label']} <small> {$type['url']} </small> </h4>
                                     <p>{$type['description']}</p>";
         }
@@ -50,8 +50,9 @@ class DocumentsField extends BazarField
 
     protected function renderStatic($entry)
     {
+      $services = $this->service->getAllDocumentsService();
       return $this->service->showDocument(
-            $this->documentsType[$entry[$this->propertyName]['documentType']] ?? null,
+            $services[$entry[$this->propertyName]['documentType']] ?? null,
             $entry ?? [],
             $this->propertyName,
         );
@@ -74,10 +75,10 @@ class DocumentsField extends BazarField
         if (!empty($entry[$this->propertyName]['documentUrl'])) {
             return $entry;
         }
-
-        if ($documentTypeKey && isset($this->documentsType[$documentTypeKey])) {
+        $services = $this->service->getAllDocumentsService();
+        if ($documentTypeKey && isset($services[$documentTypeKey])) {
             $entry[$this->propertyName]['documentUrl'] = $this->service->createDocument(
-                $this->documentsType[$documentTypeKey],
+                $services[$documentTypeKey],
                 $entry
             );
         }
