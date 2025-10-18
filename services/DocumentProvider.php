@@ -79,9 +79,27 @@ abstract class DocumentProvider
     {
         $docConfig = $data['docConfig'];
         $documentUrl = $data['documentUrl'];
+        $this->wiki->AddCss('
+.document-full-width {
+  width: 100vw !important;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  min-height:1000px;
+  border:none;
+}
 
+.panel .document-full-width {
+  width: 100% !important;
+  margin: 0 !important;
+  left: 0;
+  right: 0;
+}
+');
         if ($docConfig['iframe'] === true) {
-            return "<iframe src='{$documentUrl}' class='full-width' style='width: 100%; min-height: 1000px; border: none;'></iframe>";
+            return "<iframe src='{$documentUrl}' class='document-full-width'></iframe>";
         }
         return "<a target='_blank' class='btn btn-primary btn-xs' href='{$documentUrl}'>"._t('DOCUMENTS_OPEN_DOCUMENT')."</a><br />";
     }
