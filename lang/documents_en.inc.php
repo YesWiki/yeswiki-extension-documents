@@ -25,6 +25,7 @@ $GLOBALS['translations'] = array_merge(
         'DOCUMENTS_STATUS' => 'Status',
         'DOCUMENTS_MODIFY' => 'Edit',
         'DOCUMENTS_CURL_ERROR' => 'cURL error while retrieving HedgeDoc URL. url: %{baseUrl}',
+        'DOCUMENTS_MEMO_API_ERROR' => 'Memo did not make the board. url: %{baseUrl}, code: %{status}, reason: %{reason}',
         'DOCUMENTS_WRONG_NON_EXISTENT_FILENAME' => 'Wrong or non-existent filename : files/%{type}',
         'DOCUMENTS_LINK_ACCESS' => 'Document access link',
         'DOCUMENTS_ACTION_TYPE_MISSING' => 'Document action: document type must be specified.',

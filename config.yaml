@@ -8,6 +8,9 @@ parameters:
   documentsMemoTitle: "Tableau de post-it"
   documentsMemoDescription: "Mémo hébergé sur yeswiki.net"
   documentsMemoIframe: true
+  # Clé API d'un compte Memo, créée depuis « Mon compte » sur ce Memo. Vide, les
+  # tableaux ne sont pas créés à l'avance et n'appartiennent à personne.
+  documentsMemoCredentials: ""
   documentsHedgedocUrl: "https://md.yeswiki.net"
   documentsHedgedocTitle: "Document markdown collaboratif"
   documentsHedgedocDescription: "Hedgedoc hébergé sur yeswiki.net"
@@ -24,6 +27,7 @@ parameters:
     - "documentsMemoTitle"
     - "documentsMemoDescription"
     - "documentsMemoIframe"
+    - "documentsMemoCredentials"
     - "documentsHedgedocUrl"
     - "documentsHedgedocTitle"
     - "documentsHedgedocDescription"
