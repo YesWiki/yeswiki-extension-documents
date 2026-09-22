@@ -9,6 +9,7 @@ use YesWiki\Bazar\Service\EntryManager;
 use YesWiki\Bazar\Service\FormManager;
 use YesWiki\Bazar\Service\ListManager;
 use YesWiki\Wiki;
+use DomainException;
 use Firebase\JWT\JWT;
 
 class OnlyOfficeDocumentProvider extends DocumentProvider
@@ -102,7 +103,14 @@ class OnlyOfficeDocumentProvider extends DocumentProvider
                         'height' => '1000px',
                         'width' => '100%',
                     ];
-            $config['token'] = JWT::encode($config, $this->wiki->config['documentsCredentials'][$docConfig['provider-name']], 'HS256');
+            $secret = $this->wiki->config['documentsCredentials'][$docConfig['provider-name']] ?? '';
+            try {
+                $config['token'] = JWT::encode($config, $secret, 'HS256');
+            } catch (DomainException $exception) {
+                return '<div class="alert alert-danger">' . _t('DOCUMENTS_SECRET_TOO_SHORT', [
+                    'key' => $docConfig['provider-name'],
+                ]) . '</div>';
+            }
             $jsconfig = json_encode($config);
             return <<<HTML
 <div id="onlyoffice-doc-{$doc['filename']}"></div>
