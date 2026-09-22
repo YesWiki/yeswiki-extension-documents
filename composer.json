@@ -1,4 +1,6 @@
 {
+    "name": "yeswiki/extension-documents",
+    "type": "yeswiki-extension",
     "require": {
         "firebase/php-jwt": "^7.0"
     }
