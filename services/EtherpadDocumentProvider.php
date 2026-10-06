@@ -2,66 +2,22 @@
 
 namespace YesWiki\Documents\Service;
 
-use Psr\Container\ContainerInterface;
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
-use YesWiki\Documents\Service\DocumentProvider;
-use YesWiki\Bazar\Service\EntryManager;
-use YesWiki\Bazar\Service\FormManager;
-use YesWiki\Bazar\Service\ListManager;
-use YesWiki\Wiki;
-
+/** Etherpad: a pad is created by its first visitor, so its address is all there is to make. */
 class EtherpadDocumentProvider extends DocumentProvider
 {
-    public function __construct(
-        ParameterBagInterface $params,
-        ContainerInterface $services,
-        EntryManager $entryManager,
-        FormManager $formManager,
-        ListManager $listManager,
-        Wiki $wiki
-    ) {
-        parent::__construct($params, $services, $entryManager, $formManager, $listManager, $wiki);
+    public function providerName(): string
+    {
+        return 'etherpad';
     }
 
-    /**
-     * Check if config input is good enough to be used by DocumentProvider
-     * @param array $config
-     * @return array $config checked config
-     */
-    public function checkConfig(array $config) //
+    public function createDocument(array $docConfig, array $entry): string
     {
-        return $config;
-    }
-
-    /**
-     * Crée un nouveau document Etherpad et retourne son URL.
-     * @param array $docConfig La configuration du document.
-     * @param array $entry Les données de l'entrée Bazar.
-     * @return string L'URL du document créé.
-     */
-    public function createDocument(array $docConfig, array $entry)
-    {
-        if (!$docConfig || !isset($docConfig['url'])) {
-            throw new \RuntimeException("Configuration Etherpad invalide ou manquante.");
+        if (empty($docConfig['url'])) {
+            throw new \RuntimeException(_t('DOCUMENTS_PROVIDER_CONFIG_MISSING', ['provider' => 'Etherpad']));
         }
+        $baseUrl = rtrim((string)$docConfig['url'], '/');
+        $title = (string)($entry['bf_titre'] ?? _t('DOCUMENTS_ETHERPAD_NEW'));
 
-        $baseUrl = rtrim($docConfig['url'], '/');
-        $title = $entry['bf_titre'] ?? _t('DOCUMENTS_ETHERPAD_NEW');
-        $generatedUrl = "{$baseUrl}/p/".$this->createDocumentId($title, 35);
-        return $generatedUrl;
-    }
-
-    public function getDefaultInstance(): array
-    {
-        return [
-          'etherpad' => [
-                  'service' => 'etherpad',
-                  'label' => _t('DOCUMENTS_ETHERPAD_LABEL'),
-                  'description' => _t('DOCUMENTS_ETHERPAD_DESCRIPTION'),
-                  'url' => 'https://pad.yeswiki.net/',
-                  'iframe' => true,
-          ]
-        ];
+        return "{$baseUrl}/p/" . $this->createDocumentId($title, 35);
     }
 }
-

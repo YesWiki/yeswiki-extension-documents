@@ -1,47 +1,48 @@
 <?php
 
-use YesWiki\Bazar\Service\EntryManager;
-use YesWiki\Bazar\Service\FormManager;
-use YesWiki\Core\Service\AclService;
-use YesWiki\Core\Service\DbService;
-use YesWiki\Core\Service\PageManager;
-use YesWiki\Core\Service\TripleStore;
+use YesWiki\Content\Entity\PageType;
+use YesWiki\Content\Service\FormManager;
+use YesWiki\Content\Service\PageManager;
 use YesWiki\Core\YesWikiMigration;
 
+/** The status list and the documents form the extension's field lives in, created once and left alone after. */
 class DocumentsCreateBazarFormAndListForDocuments extends YesWikiMigration
 {
     public function run()
     {
+        $this->createLists(dirname(__DIR__) . '/setup/lists');
+        $this->createForms(dirname(__DIR__) . '/setup/forms');
+    }
+
+    /** Each `<Tag>.json` of $directory becomes the Value list `<Tag>`, unless that tag is taken. */
+    public function createLists(string $directory): void
+    {
         $pageManager = $this->getService(PageManager::class);
-        $tripleStore = $this->getService(TripleStore::class);
-        $dbService = $this->getService(DbService::class);
-        $entryManager = $this->getService(EntryManager::class);
-        $formManager = $this->getService(FormManager::class);
-
-        $glob = glob('tools/documents/setup/lists/*.json');
-        foreach ($glob as $filename) {
-            $listname = str_replace(['tools/documents/setup/lists/', '.json'], '', $filename);
-            if (file_exists($filename) && !$pageManager->getOne($listname)) {
-                // save the page with the list value
-                $pageManager->save($listname, file_get_contents($filename));
-                // in case, there is already some triples for the list, delete them
-                $tripleStore->delete($listname, 'http://outils-reseaux.org/_vocabulary/type', null);
-                // create the triple to specify this page is a list
-                $tripleStore->create($listname, 'http://outils-reseaux.org/_vocabulary/type', 'liste', '', '');
+        foreach (glob($directory . '/*.json') ?: [] as $filename) {
+            $tag = basename($filename, '.json');
+            $list = json_decode((string)file_get_contents($filename), true);
+            if (!is_array($list) || $pageManager->tagExists($tag)) {
+                continue;
             }
+            $pageManager->save($tag, ['title' => (string)($list['title'] ?? $tag), 'nodes' => is_array($list['nodes'] ?? null) ? $list['nodes'] : []], '', true, null, PageType::LIST);
+            $pageManager->cacheType($tag, PageType::LIST);
+            $this->say("documents: list {$tag} created");
         }
+    }
 
-        $glob = glob('tools/documents/setup/forms/*.json');
-        foreach ($glob as $filename) {
-            $formId = str_replace(['tools/documents/setup/forms/', '.json'], '', $filename);
-
-            // test if the form exists, if not, install it
-            $form = $formManager->getOne($formId);
-            if (empty($form)) {
-                $form = json_decode(file_get_contents($filename), true);
-                $formManager->create($form);
+    /** Each `<id>.json` of $directory becomes form `<id>`, unless a form already has that id. */
+    public function createForms(string $directory): void
+    {
+        $formManager = $this->getService(FormManager::class);
+        foreach (glob($directory . '/*.json') ?: [] as $filename) {
+            $formId = basename($filename, '.json');
+            $form = json_decode((string)file_get_contents($filename), true);
+            if (!is_array($form) || $formManager->getOne($formId) !== null) {
+                continue;
             }
+            $form['id'] = $formId;
+            $formManager->create($form);
+            $this->say("documents: form {$formId} created");
         }
     }
 }
-

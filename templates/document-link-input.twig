@@ -1,0 +1,7 @@
+{% extends '@core/layouts/input.twig' %}
+
+{% block label %}{{ _t('DOCUMENTS_LINK_ACCESS') }}{% endblock %}
+
+{% block input %}
+  <a href="{{ url }}" target="_blank" rel="noopener">{{ url }}</a>
+{% endblock %}

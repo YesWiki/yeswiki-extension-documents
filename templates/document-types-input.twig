@@ -1,0 +1,23 @@
+{% extends '@core/layouts/input.twig' %}
+
+{% block input %}
+  {{ include_css('extensions/documents/styles/documents.css') }}
+  {% for message in errors %}
+    <div class="yw-alert yw-alert--warning">{{ message }}</div>
+  {% endfor %}
+  <div class="bazar-radio-rows bazar-radio documents-types{{ field.required ? ' radio_required' : '' }}">
+    {% for key, service in services %}
+      <div class="radio documents-types__option">
+        <label for="{{ field.propertyName ~ '_documentType_' ~ key }}">
+          <input class="element_radio" type="radio" id="{{ field.propertyName ~ '_documentType_' ~ key }}"
+                 value="{{ key }}" name="{{ field.propertyName }}[documentType]"
+                 {% if value == key %}checked data-default="checked"{% endif %} />
+          <span>
+            <strong>{{ service.label }}</strong> <span class="yw-text-muted">{{ service.url }}</span><br>
+            {{ service.description }}
+          </span>
+        </label>
+      </div>
+    {% endfor %}
+  </div>
+{% endblock %}

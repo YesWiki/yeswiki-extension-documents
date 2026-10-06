@@ -1,59 +1,104 @@
 # Extension documents
 
-Ajoute un champ bazar qui attache un document collaboratif à une fiche. Le document
-s'édite directement dans la page, à plusieurs.
+Attache un document collaboratif à une fiche et l'affiche dans la page, où plusieurs
+personnes l'éditent en même temps.
 
-Deux fournisseurs sont gérés : OnlyOffice et Etherpad.
+Quatre fournisseurs sont gérés : Etherpad, HedgeDoc, Mémo et OnlyOffice. Les trois premiers
+sont réglés dès l'activation, sur les serveurs de yeswiki.net.
+
+## Ce que l'extension installe
+
+La migration de l'extension, lancée à l'installation ou par `./yeswicli migrate`, crée la liste `ListStatut` (en cours de rédaction, finalisé, archivé)
+et le formulaire 1500, « Documents collaboratifs ». Ce formulaire porte un champ
+`documents` : à la création d'une fiche, on choisit le type de document, et
+l'enregistrement le crée sur le service choisi.
+
+Le champ `documents` s'ajoute aussi à n'importe quel autre formulaire, depuis le
+constructeur de formulaires.
+
+## L'action `{{document}}`
+
+Elle se trouve dans la palette de l'éditeur, rubrique Médias, sous le nom « Document
+collaboratif ».
+
+```
+{{document type="etherpad"}}
+```
+
+À la première visite, l'action crée une fiche du formulaire 1500 avec un nouveau document,
+puis réécrit la page pour y inscrire l'identifiant de cette fiche :
+
+```
+{{document type="etherpad" id="doc-etherpad-dans-la-page-accueil"}}
+```
+
+Les visites suivantes affichent ce document. Seule une personne qui peut modifier la page
+déclenche la création ; les autres voient un message.
+
+| Paramètre | Rôle |
+|---|---|
+| `type` | `etherpad`, `hedgedoc`, `memo`, ou tout autre service configuré |
+| `id` | la fiche dont afficher le document ; absent, un document est créé |
+| `formId` | le formulaire où créer la fiche, 1500 par défaut (clé `documentsFormId`) |
+
+L'aperçu de l'éditeur n'exécute pas l'action : elle y affiche un simple message.
 
 ## Configuration
 
-Chaque fournisseur se déclare par un jeu de clés dans `wakka.config.php`, toutes
-préfixées par `documents` suivi du nom du service.
+Chaque service se déclare par un jeu de clés dans `yeswiki.config.php`, préfixées par
+`documents` puis le nom du service. Les clés des services fournis se modifient aussi depuis
+l'écran de configuration du wiki, groupe « Documents collaboratifs ».
 
 | Clé | Obligatoire | Rôle |
 |---|---|---|
 | `documents<Service>Url` | oui | URL du serveur du service |
 | `documents<Service>Title` | oui | libellé affiché dans le formulaire |
 | `documents<Service>Description` | oui | description affichée dans le formulaire |
-| `documents<Service>Iframe` | non | affiche le document dans une iframe |
-| `documents<Service>Credentials` | non | secret partagé avec le service |
+| `documents<Service>Iframe` | non | affiche le document dans une iframe plutôt que derrière un lien |
+| `documents<Service>Credentials` | non | clé ou secret partagé avec le service |
 
-Exemple pour OnlyOffice :
+Un service dont l'une des trois premières clés manque n'est pas proposé, et le formulaire
+dit lequel.
+
+Pour Mémo, `documentsMemoCredentials` est la clé API d'un compte, créée depuis « Mon
+compte » sur ce Mémo. Avec elle, Mémo crée le tableau, qui appartient à ce compte. Sans
+elle, le tableau naît à la première visite.
+
+## OnlyOffice
+
+Le nom du service commence par `OnlyOffice`, et ce qui suit choisit le type de fichier :
+`OnlyOfficeDocx`, `OnlyOfficeXlsx`, `OnlyOfficePptx`. Sans suffixe, c'est un `docx`.
 
 ```php
-'documentsOnlyOfficeUrl' => 'https://onlyoffice.example.org',
-'documentsOnlyOfficeTitle' => 'Document bureautique',
-'documentsOnlyOfficeDescription' => 'Traitement de texte, tableur, présentation',
-'documentsOnlyOfficeCredentials' => 'un-secret-d-au-moins-32-caracteres',
+'documentsOnlyOfficeDocxUrl' => 'https://onlyoffice.example.org',
+'documentsOnlyOfficeDocxTitle' => 'Document bureautique',
+'documentsOnlyOfficeDocxDescription' => 'Traitement de texte',
+'documentsOnlyOfficeDocxIframe' => true,
+'documentsOnlyOfficeDocxCredentials' => 'un-secret-d-au-moins-32-caracteres',
 ```
 
-Les trois premières clés sont obligatoires ensemble : si l'une manque, l'extension
-s'arrête sur un message d'erreur au lieu de démarrer à moitié.
+Le secret se règle aussi dans `documentsCredentials`, par service :
+`'documentsCredentials' => ['onlyofficedocx' => '…']`. Il passe avant
+`documents<Service>Credentials`.
 
-## Le secret OnlyOffice doit faire au moins 32 caractères
+À la création, un fichier vierge est copié dans `files/`, par la couche de stockage du
+wiki (un bucket S3 fonctionne aussi), et OnlyOffice l'ouvre depuis son adresse publique.
 
-Le jeton envoyé à OnlyOffice est signé en HS256. Depuis la version 7 de
-`firebase/php-jwt`, une clé plus courte que la sortie du hash est refusée, donc moins
-de 32 octets pour HS256. Un secret plus court fait échouer l'affichage du document.
+### Le secret doit faire au moins 32 caractères
 
-Cette contrainte vient du correctif d'une faille de la branche 6 de la bibliothèque.
-Allonger le secret, des deux côtés, est la seule marche à suivre.
+Le jeton envoyé à OnlyOffice est signé en HS256. Depuis la version 7 de `firebase/php-jwt`,
+une clé de moins de 32 octets est refusée, et le document ne s'affiche pas. Allonger le
+secret, des deux côtés, est la seule solution.
 
-## Utilisation
+### Le rappel OnlyOffice
 
-Ajouter le champ `documents` au formulaire bazar. À la création d'une fiche, le
-document est créé sur le service et attaché à la fiche.
+Quand un document a été modifié, le serveur OnlyOffice appelle
+`/<Page>/onlyoffice?filename=…` pour que le wiki réécrive le fichier. Ce rappel n'est
+accepté que si :
 
-## Le rappel OnlyOffice
+- il est signé avec le secret d'un service OnlyOffice configuré ;
+- l'adresse de téléchargement qu'il donne pointe sur le serveur de ce même service ;
+- le nom de fichier désigne un fichier bureautique existant, directement dans `files/`.
 
-Le serveur OnlyOffice appelle `?onlyoffice&filename=…` quand un document a été
-modifié, pour que le wiki réécrive le fichier.
-
-Ce rappel n'est accepté que s'il est signé avec le secret de
-`documentsCredentials['onlyoffice']`, que l'url de téléchargement qu'il donne pointe
-sur le serveur OnlyOffice configuré, et que le nom de fichier désigne un fichier
-existant du dossier `files/`. Tout le reste est refusé, et la réponse JSON en donne la
-raison.
-
-C'est pourquoi le secret doit être réglé des deux côtés : sans lui, le rappel est
-refusé et les documents ne se sauvegardent plus.
+Tout autre rappel est refusé, et la réponse JSON en donne la raison. Sans secret réglé des
+deux côtés, les documents ne s'enregistrent donc plus.

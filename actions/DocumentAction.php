@@ -1,93 +1,130 @@
 <?php
 
-namespace YesWiki\Documents;
+namespace YesWiki\Documents\Action;
 
+use YesWiki\Content\Entity\PageBody;
+use YesWiki\Content\Service\EntryManager;
+use YesWiki\Content\Service\FormManager;
+use YesWiki\Content\Service\PageManager;
 use YesWiki\Core\YesWikiAction;
-use YesWiki\Bazar\Service\EntryManager;
-use YesWiki\Bazar\Service\FormManager;
-use YesWiki\Core\Service\PageManager;
+use YesWiki\Documents\Field\DocumentsField;
 use YesWiki\Documents\Service\DocumentsService;
+use YesWiki\Identity\Service\AclService;
+use YesWiki\Kernel\Component\Category;
+use YesWiki\Kernel\Component\Component;
+use YesWiki\Kernel\Component\ProvidesComponents;
+use YesWiki\Kernel\Component\Setting;
+use YesWiki\Kernel\Performable\RegisteredAction;
+use YesWiki\Kernel\Service\PageContext;
+use YesWiki\Kernel\Service\Redirector;
+use YesWiki\Kernel\Service\RuntimeConfig;
+use YesWiki\Kernel\Service\UrlFormatter;
 
-class DocumentAction extends YesWikiAction
+/** `{{document type="etherpad"}}`: creates an entry holding a new document, then pins its id in the page; `{{document id="..."}}` shows it. */
+class DocumentAction extends YesWikiAction implements RegisteredAction, ProvidesComponents
 {
-    protected $authController;
-    protected $pageManager;
-    protected $templateEngine;
-    protected $securityController;
-    protected $userManager;
+    public const DRAFT_STATUS = 'en_cour_de_redaction';
 
-    /**
-     * @param mixed $arg
-     *
-     * @return array<string,mixed>
-     */
-    public function formatArguments($arg): array
+    public static function performableName(): string
     {
-        if (empty($arg['formId'])) {
-            $arg['formId'] = $this->wiki->getConfigValue('documentsFormId');
-        }
-        return $arg;
+        return 'document';
     }
 
-    public function run(): ?string
+    public function components(): array
+    {
+        return [
+            Component::for('document')
+                ->category(Category::Media)
+                ->label(_t('DOCUMENTS_COMPONENT_LABEL'))
+                ->description(_t('DOCUMENTS_COMPONENT_DESCRIPTION'))
+                ->icon('file-text')
+                ->settings(
+                    Setting::choice('type', [
+                        'etherpad' => _t('AB_document_action_etherpad'),
+                        'hedgedoc' => _t('AB_document_action_hedgedoc'),
+                        'memo' => _t('AB_document_action_memo'),
+                    ])->label(_t('AB_document_action_type_label'))->required(),
+                    Setting::entry('id')->label(_t('AB_document_action_id_label'))->hint(_t('AB_document_action_id_hint')),
+                    Setting::number('formId')->label(_t('AB_document_action_formid_label'))->default(1500),
+                ),
+        ];
+    }
+
+    public function formatArguments($arg): array
+    {
+        $formId = trim((string)($arg['formId'] ?? ''));
+        $defaultFormId = $this->getService(RuntimeConfig::class)['documentsFormId'];
+
+        return [
+            'type' => strtolower(trim((string)($arg['type'] ?? ''))),
+            'id' => trim((string)($arg['id'] ?? '')),
+            'formId' => $formId !== '' ? $formId : (is_scalar($defaultFormId) ? (string)$defaultFormId : '1500'),
+        ];
+    }
+
+    public function run(): string
     {
         $service = $this->getService(DocumentsService::class);
-        $entryManager = $this->getService(EntryManager::class);
-        $pageManager = $this->getService(PageManager::class);
-        $formManager = $this->getService(FormManager::class);
+        $pageContext = $this->getService(PageContext::class);
+        if ($pageContext->getMethod() === 'render') {
+            return $this->alert('info', _t('DOCUMENTS_ACTION_NO_PREVIEW'));
+        }
         $availableServices = $service->getAllDocumentsService();
-        $availableDocs = array_keys($service->getAvailableServices($this->wiki->config));
-        if ($this->wiki->getMethod() == 'render') {
-            return('<div class="alert alert-info">'._t('DOCUMENTS_ACTION_NO_PREVIEW').'.</div>');
+        $docField = $this->getService(FormManager::class)->findTypeOfFields($this->arguments['formId'], ['DocumentsField'])[0] ?? null;
+        if (!$docField instanceof DocumentsField) {
+            return $this->alert('danger', _t('DOCUMENTS_ACTION_FIELD_NOT_FOUND'));
         }
-        if (empty($this->arguments['type'])) {
-            return('<div class="alert alert-danger">' . _t('DOCUMENTS_ACTION_TYPE_MISSING') . '</div>');
-        }
-        if (!in_array($this->arguments['type'], $availableDocs)) {
-            return('<div class="alert alert-danger">' . _t('DOCUMENTS_ACTION_INVALID_TYPE', ['doc' => implode('", "', $availableDocs)]) . '</div>');
-        }
-        $formId = $this->arguments['formId'];
-        $docField = $formManager->findTypeOfFields($formId, ['DocumentsField']);
-        if (empty($docField[0])) {
-            return('<div class="alert alert-danger">' . _t('DOCUMENTS_ACTION_FIELD_NOT_FOUND') . '</div>');
-        } else {
-            $docField = $docField[0];
-            $docField = $docField->getPropertyName();
+        $fieldName = (string)$docField->getPropertyName();
+
+        if ($this->arguments['id'] !== '') {
+            $entry = $this->getService(EntryManager::class)->getOne($this->arguments['id']);
+            $documentType = $entry[$fieldName]['documentType'] ?? '';
+            if (empty($entry) || empty($entry[$fieldName]['documentUrl']) || !is_string($documentType)) {
+                return $this->alert('danger', _t('DOCUMENTS_ACTION_ENTRY_NOT_FOUND', ['id' => $this->arguments['id']]));
+            }
+
+            return $service->showDocument($availableServices[$documentType] ?? null, $entry, $fieldName);
         }
 
-        if (!empty($this->arguments['id'])) {
-          $entry = $entryManager->getOne($this->arguments['id']);
-            if (!empty($entry) && !empty($entry[$docField]['documentUrl'])) {
-                return $service->showDocument(
-                    $availableServices[$entry[$docField]['documentType']],
-                    $entry,
-                    $docField
-                );
-            } else {
-                return('<div class="alert alert-danger">' . _t('DOCUMENTS_ACTION_ENTRY_NOT_FOUND', [ 'id' => $this->arguments['id']]) . '</div>');
-            }
-        } else {
-                   $data = [
-              'bf_titre' => _t(
-                  'DOCUMENTS_DOC_IN_PAGE',
-                  [
-                  'type' => $this->arguments['type'],
-                  'page' => $this->wiki->getPageTag()
-                ]
-              ),
-              'id_typeannonce' => $formId,
-              'bf_statut' => _t('DOCUMENTS_DRAFT_STATUS'),
-              $docField => ['documentType' => $this->arguments['type']],
-              'antispam' => '1',
-            ];
-            $entry = $entryManager->create($formId, $data);
-            $currentPage = $pageManager->getOne($this->wiki->getPageTag());
-            $re = '/\{\{document(?!.*id="[^"]+").*\}\}/mUi';
-            $subst = '{{document type="'.$this->arguments['type'].'" id="'.$entry['id_fiche'].'"}}';
-            $body = preg_replace($re, $subst, $currentPage['body'], 1);
-            $pageManager->save($this->wiki->getPageTag(), $body);
-            $this->wiki->redirect($this->wiki->href());
+        if ($this->arguments['type'] === '') {
+            return $this->alert('danger', _t('DOCUMENTS_ACTION_TYPE_MISSING'));
         }
-        return '';
+        if (!isset($availableServices[$this->arguments['type']])) {
+            return $this->alert('danger', _t('DOCUMENTS_ACTION_INVALID_TYPE', ['doc' => implode('", "', array_keys($availableServices))]));
+        }
+
+        $tag = $pageContext->getTag();
+        if (!$this->getService(AclService::class)->hasAccess('write', $tag)) {
+            return $this->alert('info', _t('DOCUMENTS_ACTION_NEEDS_WRITE'));
+        }
+        $entry = $this->getService(EntryManager::class)->create($this->arguments['formId'], [
+            'bf_titre' => _t('DOCUMENTS_DOC_IN_PAGE', ['type' => $this->arguments['type'], 'page' => $tag]),
+            'bf_statut' => self::DRAFT_STATUS,
+            $fieldName => ['documentType' => $this->arguments['type']],
+            'antispam' => '1',
+        ]);
+        $this->pinEntryInPage($tag, (string)$entry['tag']);
+        $this->getService(Redirector::class)->redirect($this->getService(UrlFormatter::class)->href('', $tag, null, false));
+    }
+
+    /** Writes the new entry's id into the first `{{document}}` of the page that has none. */
+    private function pinEntryInPage(string $tag, string $entryTag): void
+    {
+        $pageManager = $this->getService(PageManager::class);
+        $page = $pageManager->getOne($tag);
+        if (empty($page)) {
+            return;
+        }
+        $content = PageBody::content($page['body']);
+        $replacement = '{{document type="' . $this->arguments['type'] . '" id="' . $entryTag . '"}}';
+        $newContent = preg_replace('/\{\{document(?![^}]*\bid="[^"]+")[^}]*\}\}/i', $replacement, $content, 1);
+        if (is_string($newContent) && $newContent !== $content) {
+            $pageManager->save($tag, array_merge(is_array($page['body']) ? $page['body'] : [], ['content' => $newContent]));
+        }
+    }
+
+    private function alert(string $kind, string $message): string
+    {
+        return '<div class="yw-alert yw-alert--' . $kind . '">' . htmlspecialchars($message) . '</div>';
     }
 }

@@ -2,169 +2,121 @@
 
 namespace YesWiki\Documents\Service;
 
-use Psr\Container\ContainerInterface;
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
-use YesWiki\Documents\Service\DocumentProvider;
-use YesWiki\Bazar\Service\EntryManager;
-use YesWiki\Bazar\Service\FormManager;
-use YesWiki\Bazar\Service\ListManager;
-use YesWiki\Wiki;
-use DomainException;
 use Firebase\JWT\JWT;
+use YesWiki\Files\Service\Storage;
+use YesWiki\Identity\Service\AuthenticationService;
+use YesWiki\Kernel\Service\LanguageService;
+use YesWiki\Kernel\Service\RuntimeConfig;
+use YesWiki\Kernel\Service\UrlFormatter;
+use YesWiki\Render\Service\TemplateEngine;
 
+/** OnlyOffice: a blank office file copied into `files/`, edited in the OnlyOffice editor, written back by the `onlyoffice` handler. */
 class OnlyOfficeDocumentProvider extends DocumentProvider
 {
-    protected $params;
-    protected $services;
-    protected $entryManager;
-    protected $formManager;
-    protected $listManager;
-    protected $wiki;
-    protected $config;
+    public const FILES_DIRECTORY = 'files';
 
+    public const DOCUMENT_TYPES = [
+        'docx' => 'word',
+        'md' => 'word',
+        'pdf' => 'pdf',
+        'xlsx' => 'cell',
+        'pptx' => 'slide',
+    ];
 
     public function __construct(
-        ParameterBagInterface $params,
-        ContainerInterface $services,
-        EntryManager $entryManager,
-        FormManager $formManager,
-        ListManager $listManager,
-        Wiki $wiki
+        TemplateEngine $templateEngine,
+        private Storage $storage,
+        private RuntimeConfig $config,
+        private UrlFormatter $urlFormatter,
+        private AuthenticationService $authenticationService,
+        private LanguageService $languageService,
     ) {
-        parent::__construct($params, $services, $entryManager, $formManager, $listManager, $wiki);
+        parent::__construct($templateEngine);
+    }
+
+    public function providerName(): string
+    {
+        return 'onlyoffice';
+    }
+
+    public function createDocument(array $docConfig, array $entry): string
+    {
+        $extension = $this->fileType($docConfig);
+        $path = self::FILES_DIRECTORY . '/' . $this->createDocumentId((string)($entry['bf_titre'] ?? 'document')) . '.' . $extension;
+        $this->storage->write($path, $this->storage->readForeign(dirname(__DIR__) . "/assets/new.{$extension}"));
+
+        return $this->storage->url($path);
     }
 
     /**
-     * Check if config input is good enough to be used by Importer
-     * @param array $config
-     * @return array $config checked config
+     * The extension of the files this service makes, `docx` unless the service is named after another one.
+     *
+     * @param array<string, mixed> $docConfig
      */
-    public function checkConfig(array $config)
+    public function fileType(array $docConfig): string
     {
-        return $config;
-    }
+        $type = strtolower((string)($docConfig['options']['filetype'] ?? ''));
 
-    /*
-     * @param array $docConfig La configuration du document.
-     * @param array $entry Les données de l'entrée Bazar.
-     * @return string L'URL du document créé.
-     */
-    public function createDocument(array $docConfig, array $entry)
-    {
-        $name = $this->createDocumentId($entry['bf_titre']);
-        $generatedFileName = "files/{$name}.{$docConfig['options']['filetype']}";
-        copy("tools/documents/assets/new.{$docConfig['options']['filetype']}", $generatedFileName);
-        $generatedUrl = $this->wiki->config["base_url"];
-        $generatedUrl = str_replace('/?', "/{$generatedFileName}", $generatedUrl);
-        return $generatedUrl;
+        return isset(self::DOCUMENT_TYPES[$type]) ? $type : 'docx';
     }
 
     /**
-     * Affiche un document Onlyoffice.
-     * @param array $data Contient 'docConfig', 'entry', 'documentUrl', 'wiki'.
-     * @return string Le HTML pour l'iframe Etherpad.
+     * The secret shared with this OnlyOffice server, '' when none is set.
+     *
+     * @param array<string, mixed> $docConfig
      */
-    public function showDocument(array $data)
+    public function secret(array $docConfig): string
     {
-        $docConfig = $data['docConfig'];
-        $documentUrl = $data['documentUrl'];
-
-        if ($docConfig['iframe'] === true) {
-            $doc = pathinfo($documentUrl);
-            $docTypes = [
-              'docx' => 'word',
-              'pdf' => 'pdf',
-              'xlsx' => 'cell',
-              'pptx' => 'slide',
-              'md' => 'word',
-              'vsdx' => 'diagram'
-            ];
-            $config = [
-                        'document' => [
-                            "fileType" => $doc['extension'],
-                            "key" => $doc['filename'],
-                            "title" => $doc['basename'],
-                            "url" => $documentUrl,
-                        ],
-                        'editorConfig' => [
-                            'callbackUrl' => $this->wiki->href('onlyoffice', '', 'filename='.$doc['basename'], false),
-                            "user" => [
-                                "id" => $this->wiki->GetUsername(),
-                                "name" => $this->wiki->GetUsername(),
-                            ],
-                            "customization" => [
-                                "features" => [
-                                    "featuresTips" => false
-                                ]
-                            ],
-                            "lang" => $GLOBALS['prefered_language'] ?? 'fr',
-                        ],
-                        'documentType' => $docTypes[$doc['filename']],
-                        'height' => '1000px',
-                        'width' => '100%',
-                    ];
-            $secret = $this->wiki->config['documentsCredentials'][$docConfig['provider-name']] ?? '';
-            try {
-                $config['token'] = JWT::encode($config, $secret, 'HS256');
-            } catch (DomainException $exception) {
-                return '<div class="alert alert-danger">' . _t('DOCUMENTS_SECRET_TOO_SHORT', [
-                    'key' => $docConfig['provider-name'],
-                ]) . '</div>';
-            }
-            $jsconfig = json_encode($config);
-            return <<<HTML
-<div id="onlyoffice-doc-{$doc['filename']}"></div>
-<script type="text/javascript" src="{$docConfig['url']}/web-apps/apps/api/documents/api.js"></script>
-<script>
-const config = {$jsconfig};
-const docEditor = new DocsAPI.DocEditor("onlyoffice-doc-{$doc['filename']}", config);
-
-</script>
-HTML;
+        $credentials = $this->config['documentsCredentials'];
+        $secret = is_array($credentials) ? ($credentials[$docConfig['provider-name'] ?? ''] ?? null) : null;
+        if (!is_string($secret) || $secret === '') {
+            $secret = $docConfig['credentials'] ?? '';
         }
-        return "<a target='_blank' class='btn btn-primary btn-xs' href='{$documentUrl}'>"._t('DOCUMENTS_OPEN_DOCUMENT')."</a><br />";
+
+        return is_string($secret) ? $secret : '';
     }
 
-
-    public function getDefaultInstance(): array
+    public function showDocument(array $docConfig, string $documentUrl): string
     {
-        return [
-          /* 'onlyoffice-docx' => [ */
-          /*   'service' => 'onlyoffice', */
-          /*   'label' => _t('DOCUMENTS_ONLYOFFICE_DOC_LABEL'), */
-          /*   'description' => _t('DOCUMENTS_ONLYOFFICE_DOC_DESCRIPTION'), */
-          /*   'url' => 'https://onlyoffice.yeswiki.net', */
-          /*   'iframe' => true, */
-          /*   'need-credentials' => true, */
-          /*   'options' => [ 'filetype' => 'docx'] */
-          /* ], */
-          /* 'onlyoffice-xlsx' => [ */
-          /*   'service' => 'onlyoffice', */
-          /*   'label' => _t('DOCUMENTS_ONLYOFFICE_XLS_LABEL'), */
-          /*   'description' => _t('DOCUMENTS_ONLYOFFICE_XLS_DESCRIPTION'), */
-          /*   'url' => 'https://onlyoffice.yeswiki.net', */
-          /*   'iframe' => true, */
-          /*   'need-credentials' => true, */
-          /*   'options' => [ 'filetype' => 'xlsx'] */
-          /* ], */
-          /* 'onlyoffice-pptx' => [ */
-          /*   'service' => 'onlyoffice', */
-          /*   'label' => _t('DOCUMENTS_ONLYOFFICE_PPT_LABEL'), */
-          /*   'description' => _t('DOCUMENTS_ONLYOFFICE_PPT_DESCRIPTION'), */
-          /*   'url' => 'https://onlyoffice.yeswiki.net', */
-          /*   'iframe' => true, */
-          /*   'need-credentials' => true, */
-          /*   'options' => [ 'filetype' => 'pptx'] */
-          /* ], */
-          /* 'onlyoffice-md' => [ */
-          /*   'service' => 'onlyoffice', */
-          /*   'label' => _t('DOCUMENTS_ONLYOFFICE_MD_LABEL'), */
-          /*   'description' => _t('DOCUMENTS_ONLYOFFICE_MD_DESCRIPTION'), */
-          /*   'url' => 'https://onlyoffice.yeswiki.net', */
-          /*   'iframe' => true, */
-          /*   'need-credentials' => true, */
-          /*   'options' => [ 'filetype' => 'md'] */
-          /* ], */
+        if (($docConfig['iframe'] ?? false) !== true) {
+            return parent::showDocument($docConfig, $documentUrl);
+        }
+        $doc = pathinfo((string)parse_url($documentUrl, PHP_URL_PATH));
+        $extension = strtolower($doc['extension'] ?? '');
+        $user = $this->authenticationService->getLoggedUserName();
+        $config = [
+            'document' => [
+                'fileType' => $extension,
+                'key' => $doc['filename'],
+                'title' => $doc['basename'],
+                'url' => $documentUrl,
+            ],
+            'editorConfig' => [
+                'callbackUrl' => $this->urlFormatter->href('onlyoffice', null, ['filename' => $doc['basename']], false),
+                'user' => [
+                    'id' => $user === '' ? 'anonymous' : $user,
+                    'name' => $user === '' ? _t('DOCUMENTS_ANONYMOUS') : $user,
+                ],
+                'customization' => ['features' => ['featuresTips' => false]],
+                'lang' => $this->languageService->preferredLanguage(),
+            ],
+            'documentType' => self::DOCUMENT_TYPES[$extension] ?? 'word',
+            'height' => '1000px',
+            'width' => '100%',
         ];
+        try {
+            $config['token'] = JWT::encode($config, $this->secret($docConfig), 'HS256');
+        } catch (\DomainException) {
+            return $this->templateEngine->render('@core/alert-message.twig', [
+                'type' => 'danger',
+                'message' => _t('DOCUMENTS_SECRET_TOO_SHORT', ['key' => (string)($docConfig['provider-name'] ?? '')]),
+            ]);
+        }
+
+        return $this->templateEngine->render('@documents/onlyoffice-editor.twig', [
+            'id' => 'onlyoffice-doc-' . $doc['filename'],
+            'apiUrl' => rtrim((string)$docConfig['url'], '/') . '/web-apps/apps/api/documents/api.js',
+            'config' => $config,
+        ]);
     }
 }

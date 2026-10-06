@@ -2,72 +2,31 @@
 
 namespace YesWiki\Documents\Service;
 
-use Psr\Container\ContainerInterface;
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
-use YesWiki\Documents\Service\DocumentProvider;
-use YesWiki\Bazar\Service\EntryManager;
-use YesWiki\Bazar\Service\FormManager;
-use YesWiki\Bazar\Service\ListManager;
-use YesWiki\Wiki;
-
+/** Memo: with an API key the board is created on Memo and belongs to that account, otherwise only its address is made. */
 class MemoDocumentProvider extends DocumentProvider
 {
-    public function __construct(
-        ParameterBagInterface $params,
-        ContainerInterface $services,
-        EntryManager $entryManager,
-        FormManager $formManager,
-        ListManager $listManager,
-        Wiki $wiki
-    ) {
-        parent::__construct($params, $services, $entryManager, $formManager, $listManager, $wiki);
+    public function providerName(): string
+    {
+        return 'memo';
     }
 
-    /**
-     * Check if config input is good enough to be used by Importer
-     * @param array $config
-     * @return array $config checked config
-     */
-    public function checkConfig(array $config)
+    public function createDocument(array $docConfig, array $entry): string
     {
-        return $config;
-    }
-
-    /*
-     * @param array $docConfig La configuration du document.
-     * @param array $entry Les données de l'entrée Bazar.
-     * @return string L'URL du document créé.
-     */
-    public function createDocument(array $docConfig, array $entry)
-    {
-        $title = $entry['bf_titre'] ?? 'Nouveau mémo';
-        if (!$docConfig || !isset($docConfig['url'])) {
-            throw new \RuntimeException("Configuration Memo invalide ou manquante.");
+        if (empty($docConfig['url'])) {
+            throw new \RuntimeException(_t('DOCUMENTS_PROVIDER_CONFIG_MISSING', ['provider' => 'Memo']));
         }
-        $baseUrl = rtrim($docConfig['url'], '/');
-
-        // Avec une clé, c'est Memo qui crée le tableau et renvoie son adresse.
-        // Le tableau appartient alors au compte que la clé représente, qui le
-        // retrouve dans sa liste et peut le fermer aux autres. Sans clé, on se
-        // contente de fabriquer une adresse : le tableau naîtra au premier
-        // visiteur, si ce Memo laisse faire.
-        $key = $docConfig['credentials'] ?? false;
-        if (!empty($key)) {
+        $title = (string)($entry['bf_titre'] ?? _t('DOCUMENTS_MEMO_NEW'));
+        $baseUrl = rtrim((string)$docConfig['url'], '/');
+        $key = $docConfig['credentials'] ?? '';
+        if (is_string($key) && $key !== '') {
             return $this->createRemoteBoard($baseUrl, $key, $title);
         }
 
-        $generatedUrl = "{$baseUrl}/".$this->createDocumentId($title);
-        return $generatedUrl;
+        return "{$baseUrl}/" . $this->createDocumentId($title);
     }
 
-    /**
-     * Demande à Memo de créer le tableau et renvoie l'URL qu'il donne.
-     * @param string $baseUrl L'adresse du Memo.
-     * @param string $key La clé API d'un compte sur ce Memo.
-     * @param string $title L'intitulé du tableau à créer.
-     * @return string L'URL du tableau créé.
-     */
-    protected function createRemoteBoard(string $baseUrl, string $key, string $title)
+    /** Asks Memo to create the board and returns the address it answers with. */
+    protected function createRemoteBoard(string $baseUrl, string $key, string $title): string
     {
         $ch = curl_init("{$baseUrl}/api/boards");
         curl_setopt_array($ch, [
@@ -77,39 +36,17 @@ class MemoDocumentProvider extends DocumentProvider
                 'Content-Type: application/json',
                 "Authorization: Bearer {$key}",
             ],
-            CURLOPT_POSTFIELDS => json_encode(['title' => $title]),
+            CURLOPT_POSTFIELDS => (string)json_encode(['title' => $title]),
             CURLOPT_TIMEOUT => 10,
         ]);
         $body = curl_exec($ch);
         $status = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-
         $answer = is_string($body) ? json_decode($body, true) : null;
 
-        if ($status !== 200 || empty($answer['url'])) {
-            throw new \RuntimeException(_t(
-                'DOCUMENTS_MEMO_API_ERROR',
-                [
-                    'baseUrl' => "{$baseUrl}/api/boards",
-                    'status' => $status,
-                    'reason' => $answer['error'] ?? '',
-                ]
-            ));
+        if ($status !== 200 || !is_array($answer) || empty($answer['url']) || !is_string($answer['url'])) {
+            throw new \RuntimeException(_t('DOCUMENTS_MEMO_API_ERROR', ['baseUrl' => "{$baseUrl}/api/boards", 'status' => (string)$status, 'reason' => is_array($answer) && is_string($answer['error'] ?? null) ? $answer['error'] : '']));
         }
 
         return $answer['url'];
-    }
-
-    public function getDefaultInstance(): array
-    {
-        return [
-          'memo' => [
-              'service' => 'memo',
-              'label' => _t('DOCUMENTS_MEMO_LABEL'),
-              'description' => _t('DOCUMENTS_MEMO_DESCRIPTION'),
-              'url' => 'https://memo.yeswiki.pro/',
-              'iframe' => true,
-              'credentials' => '',
-          ],
-        ];
     }
 }

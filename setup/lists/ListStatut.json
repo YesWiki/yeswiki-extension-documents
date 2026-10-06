@@ -1,20 +1,17 @@
 {
-  "title": "statut",
+  "title": "Statut",
   "nodes": [
     {
-      "label": "en cour de r\u00e9daction",
       "id": "en_cour_de_redaction",
-      "children": []
+      "label": "En cours de rédaction"
     },
     {
-      "label": "finalis\u00e9",
       "id": "finalise",
-      "children": []
+      "label": "Finalisé"
     },
     {
-      "label": "archiv\u00e9",
       "id": "archive",
-      "children": []
+      "label": "Archivé"
     }
   ]
 }

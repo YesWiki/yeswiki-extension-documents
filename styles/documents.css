@@ -1,0 +1,34 @@
+/* The collaborative document an entry carries: framed as wide as the window, or as its container inside a panel. */
+.documents-frame {
+  display: block;
+  width: 100vw;
+  max-width: 100vw;
+  position: relative;
+  left: 50%;
+  margin-left: -50vw;
+  min-height: 1000px;
+  border: none;
+  margin-bottom: var(--yw-space-md);
+  background: var(--yw-surface);
+}
+
+.yw-panel .documents-frame {
+  width: 100%;
+  left: 0;
+  margin-left: 0;
+}
+
+.documents-document__meta {
+  color: var(--yw-text-muted);
+  font-size: 0.875em;
+}
+
+.documents-types__option + .documents-types__option {
+  margin-top: var(--yw-space-sm);
+}
+
+.documents-types__option label {
+  display: flex;
+  gap: var(--yw-space-sm);
+  align-items: baseline;
+}

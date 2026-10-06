@@ -1,97 +1,112 @@
 <?php
-// Handler /onlyoffice : rappel appelé par le serveur OnlyOffice quand un document
-// a été modifié. Il n'écrit le fichier que si le rappel est signé par ce serveur.
 
-namespace YesWiki\Documents;
+namespace YesWiki\Documents\Handler;
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
-use Throwable;
 use YesWiki\Core\YesWikiHandler;
+use YesWiki\Documents\Service\DocumentsService;
+use YesWiki\Documents\Service\OnlyOfficeDocumentProvider;
+use YesWiki\Files\Service\Storage;
+use YesWiki\Kernel\Performable\RegisteredHandler;
 
-class OnlyOfficeHandler extends YesWikiHandler
+/** `/PageName/onlyoffice?filename=...`: the OnlyOffice server's callback, which rewrites the file only when the server signed it. */
+class OnlyOfficeHandler extends YesWikiHandler implements RegisteredHandler
 {
-    private const PROVIDER = 'onlyoffice';
     private const STATUS_READY_FOR_SAVING = 2;
-    private const FILES_DIRECTORY = 'files';
 
-    public function run()
+    public static function performableName(): string
     {
-        $body = file_get_contents('php://input');
-        if ($body === false || $body === '') {
-            return $this->answer(1, _t('DOCUMENTS_BAD_REQUEST'));
-        }
+        return 'onlyoffice';
+    }
 
-        $data = json_decode($body, true);
+    public function run(): string
+    {
+        $data = json_decode($this->getRequest()->getContent(), true);
         if (!is_array($data)) {
             return $this->answer(1, _t('DOCUMENTS_BAD_REQUEST'));
         }
 
-        $payload = $this->verifiedPayload($data);
-        if ($payload === null) {
+        $signed = $this->verifiedPayload($data);
+        if ($signed === null) {
             return $this->answer(1, _t('DOCUMENTS_CALLBACK_NOT_SIGNED'));
         }
+        [$payload, $serverUrl] = $signed;
 
         if (($payload['status'] ?? null) != self::STATUS_READY_FOR_SAVING) {
             return $this->answer(0);
         }
 
         $downloadUri = $payload['url'] ?? '';
-        if (!$this->isDownloadUriAllowed($downloadUri)) {
+        if (!is_string($downloadUri) || !$this->isDownloadUriAllowed($downloadUri, $serverUrl)) {
             return $this->answer(1, _t('DOCUMENTS_CALLBACK_FOREIGN_URL'));
         }
 
-        $target = $this->targetPath($this->getRequest()->query->get('filename'));
+        $filename = $this->getRequest()->query->get('filename');
+        $target = $this->targetPath($filename);
         if ($target === null) {
-            return $this->answer(1, _t('DOCUMENTS_WRONG_NON_EXISTENT_FILENAME', [
-                'type' => $this->getRequest()->query->get('filename'),
-            ]));
+            return $this->answer(1, _t('DOCUMENTS_WRONG_NON_EXISTENT_FILENAME', ['type' => (string)$filename]));
         }
 
-        $newData = file_get_contents($downloadUri);
-        if ($newData === false) {
+        $newData = $this->download($downloadUri);
+        if ($newData === null) {
             return $this->answer(1, _t('DOCUMENTS_BAD_RESPONSE'));
         }
-        file_put_contents($target, $newData, LOCK_EX);
+        $this->getService(Storage::class)->write($target, $newData);
 
         return $this->answer(0);
     }
 
-    /** Le corps du rappel tel que le serveur OnlyOffice l'a signé, ou null si la signature ne vaut rien. */
-    private function verifiedPayload(array $data)
+    /**
+     * The callback's body as one configured OnlyOffice server signed it, with that server's url, or null when no secret verifies it.
+     *
+     * @param array<string, mixed> $data
+     *
+     * @return array{0: array<string, mixed>, 1: string}|null
+     */
+    private function verifiedPayload(array $data): ?array
     {
-        $secret = $this->wiki->config['documentsCredentials'][self::PROVIDER] ?? '';
-        if (!is_string($secret) || $secret === '') {
-            return null;
-        }
-
         $token = $this->tokenFromRequest($data);
         if ($token === null) {
             return null;
         }
+        $provider = $this->getService(OnlyOfficeDocumentProvider::class);
+        foreach ($this->getService(DocumentsService::class)->getAllDocumentsService() as $docConfig) {
+            if ($docConfig['provider'] !== $provider->providerName()) {
+                continue;
+            }
+            $secret = $provider->secret($docConfig);
+            if ($secret === '') {
+                continue;
+            }
+            try {
+                $decoded = JWT::decode($token, new Key($secret, 'HS256'));
+            } catch (\Throwable) {
+                continue;
+            }
+            $payload = json_decode((string)json_encode($decoded), true);
+            if (!is_array($payload)) {
+                continue;
+            }
+            $payload = is_array($payload['payload'] ?? null) ? $payload['payload'] : $payload;
 
-        try {
-            $payload = JWT::decode($token, new Key($secret, 'HS256'));
-        } catch (Throwable $exception) {
-            return null;
+            return [$payload, (string)$docConfig['url']];
         }
 
-        $payload = json_decode(json_encode($payload), true);
-        if (!is_array($payload)) {
-            return null;
-        }
-
-        return $payload['payload'] ?? $payload;
+        return null;
     }
 
-    /** Le jeton du rappel, pris dans le corps ou dans l'en-tête Authorization. */
-    private function tokenFromRequest(array $data)
+    /**
+     * The callback's token, from its body or from the Authorization header.
+     *
+     * @param array<string, mixed> $data
+     */
+    private function tokenFromRequest(array $data): ?string
     {
         if (!empty($data['token']) && is_string($data['token'])) {
             return $data['token'];
         }
-
-        $header = $this->getRequest()->headers->get('Authorization', '');
+        $header = (string)$this->getRequest()->headers->get('Authorization', '');
         if (preg_match('/^Bearer\s+(\S+)$/i', $header, $matches)) {
             return $matches[1];
         }
@@ -99,70 +114,54 @@ class OnlyOfficeHandler extends YesWikiHandler
         return null;
     }
 
-    /** L'url de téléchargement pointe-t-elle bien sur le serveur OnlyOffice configuré ? */
-    private function isDownloadUriAllowed($downloadUri): bool
+    /** Whether the download address is on the OnlyOffice server whose secret signed the callback. */
+    private function isDownloadUriAllowed(string $downloadUri, string $serverUrl): bool
     {
-        if (!is_string($downloadUri) || $downloadUri === '') {
-            return false;
-        }
-
-        $expected = parse_url($this->configuredServerUrl(), PHP_URL_HOST);
+        $expected = parse_url($serverUrl, PHP_URL_HOST);
         $given = parse_url($downloadUri, PHP_URL_HOST);
-        if (empty($expected) || empty($given)) {
+        if (!is_string($expected) || !is_string($given) || $expected === '' || $given === '') {
             return false;
         }
-        if (!in_array(strtolower((string) parse_url($downloadUri, PHP_URL_SCHEME)), ['http', 'https'], true)) {
+        if (!in_array(strtolower((string)parse_url($downloadUri, PHP_URL_SCHEME)), ['http', 'https'], true)) {
             return false;
         }
 
         return strcasecmp($expected, $given) === 0;
     }
 
-    /** L'url du serveur OnlyOffice, quelle que soit la casse de la clé de configuration. */
-    private function configuredServerUrl(): string
+    /** The instance-relative path of the file to rewrite, or null unless it is an existing office file right under `files/`. */
+    private function targetPath(mixed $filename): ?string
     {
-        foreach ($this->wiki->config as $key => $value) {
-            if (preg_match('/^documents(.*)Url$/i', $key, $matches)
-                && strtolower($matches[1]) === self::PROVIDER
-                && is_string($value)) {
-                return $value;
-            }
+        if (!is_string($filename) || $filename === '' || basename($filename) !== $filename || str_starts_with($filename, '.')) {
+            return null;
         }
+        if (!isset(OnlyOfficeDocumentProvider::DOCUMENT_TYPES[strtolower(pathinfo($filename, PATHINFO_EXTENSION))])) {
+            return null;
+        }
+        $path = OnlyOfficeDocumentProvider::FILES_DIRECTORY . '/' . $filename;
 
-        return '';
+        return $this->getService(Storage::class)->fileExists($path) ? $path : null;
     }
 
-    /** Le chemin du fichier à réécrire, ou null s'il sort du dossier des fichiers ou n'existe pas. */
-    private function targetPath($filename)
+    /** The edited file's bytes, fetched from the OnlyOffice server. */
+    protected function download(string $url): ?string
     {
-        if (!is_string($filename) || $filename === '' || basename($filename) !== $filename) {
-            return null;
-        }
+        $bytes = @file_get_contents($url);
 
-        $directory = realpath(self::FILES_DIRECTORY);
-        if ($directory === false) {
-            return null;
-        }
-        $target = realpath($directory . DIRECTORY_SEPARATOR . $filename);
-        if ($target === false || !is_file($target)) {
-            return null;
-        }
-        if (strpos($target, $directory . DIRECTORY_SEPARATOR) !== 0) {
-            return null;
-        }
-
-        return $target;
+        return $bytes === false ? null : $bytes;
     }
 
-    /** La réponse JSON attendue par le serveur OnlyOffice. */
+    /** The JSON answer the OnlyOffice server expects. */
     private function answer(int $error, ?string $message = null): string
     {
-        header('Content-Type: application/json; charset=utf-8');
+        if (!headers_sent()) {
+            header('Content-Type: application/json; charset=utf-8');
+        }
         $body = ['error' => $error];
         if ($message !== null) {
             $body['message'] = $message;
         }
 
-        return json_encode($body);
+        return (string)json_encode($body);
     }
 }

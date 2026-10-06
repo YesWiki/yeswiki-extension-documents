@@ -1,0 +1,6 @@
+{{ include_css('extensions/documents/styles/documents.css') }}
+{% if iframe %}
+  <iframe src="{{ url }}" class="documents-frame" title="{{ _t('DOCUMENTS_OPEN_DOCUMENT') }}"></iframe>
+{% else %}
+  <p><a target="_blank" rel="noopener" class="yw-btn yw-btn--primary yw-btn--sm" href="{{ url }}">{{ _t('DOCUMENTS_OPEN_DOCUMENT') }}</a></p>
+{% endif %}

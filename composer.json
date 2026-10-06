@@ -1,7 +1,23 @@
 {
     "name": "yeswiki/extension-documents",
     "type": "yeswiki-extension",
+    "description": "Collaborative documents (Etherpad, HedgeDoc, Memo, OnlyOffice) attached to an entry",
+    "license": "AGPL-3.0-or-later",
     "require": {
+        "php": ">=8.3",
         "firebase/php-jwt": "^7.0"
+    },
+    "extra": {
+        "yeswiki": {
+            "label": {
+                "fr": "Documents collaboratifs",
+                "en": "Collaborative documents"
+            },
+            "description": {
+                "fr": "Attache un document collaboratif (Etherpad, HedgeDoc, Mémo, OnlyOffice) à une fiche, et l'affiche dans la page.",
+                "en": "Attaches a collaborative document (Etherpad, HedgeDoc, Memo, OnlyOffice) to an entry and shows it in the page."
+            },
+            "requires-extensions": []
+        }
     }
 }

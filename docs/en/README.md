@@ -1,58 +1,100 @@
 # documents extension
 
-Adds a bazar field attaching a collaborative document to an entry. The document is
-edited right inside the page, by several people at once.
+Attaches a collaborative document to an entry and shows it in the page, where several
+people edit it at once.
 
-Two providers are supported: OnlyOffice and Etherpad.
+Four providers are supported: Etherpad, HedgeDoc, Memo and OnlyOffice. The first three work
+as soon as the extension is on, using the yeswiki.net servers.
+
+## What the extension installs
+
+The extension's migration, run on install or by `./yeswicli migrate`, creates the `ListStatut` list (being written, finished,
+archived) and form 1500, "Documents collaboratifs". That form carries a `documents` field:
+creating an entry means picking a kind of document, and saving the entry creates it on that
+service.
+
+The `documents` field can be added to any other form too, from the form builder.
+
+## The `{{document}}` action
+
+It is in the editor's palette, under Media, as "Collaborative document".
+
+```
+{{document type="etherpad"}}
+```
+
+On the first visit, the action creates an entry of form 1500 holding a new document, then
+rewrites the page to write that entry's id into it:
+
+```
+{{document type="etherpad" id="doc-etherpad-dans-la-page-accueil"}}
+```
+
+Later visits show that document. Only someone who can edit the page triggers the creation;
+anyone else sees a message.
+
+| Parameter | Purpose |
+|---|---|
+| `type` | `etherpad`, `hedgedoc`, `memo`, or any other configured service |
+| `id` | the entry whose document to show; without it, a document is created |
+| `formId` | the form the entry is created in, 1500 by default (key `documentsFormId`) |
+
+The editor's preview does not run the action: it shows a short message instead.
 
 ## Configuration
 
-Each provider is declared by a set of keys in `wakka.config.php`, all prefixed with
-`documents` followed by the service name.
+Each service is declared by a set of keys in `yeswiki.config.php`, prefixed with
+`documents` and the service name. The keys of the bundled services can also be changed
+from the wiki's configuration screen, in the "Documents collaboratifs" group.
 
 | Key | Required | Purpose |
 |---|---|---|
-| `documents<Service>Url` | yes | URL of the service server |
+| `documents<Service>Url` | yes | URL of the service's server |
 | `documents<Service>Title` | yes | label shown in the form |
 | `documents<Service>Description` | yes | description shown in the form |
-| `documents<Service>Iframe` | no | shows the document inside an iframe |
-| `documents<Service>Credentials` | no | shared secret with the service |
+| `documents<Service>Iframe` | no | shows the document in an iframe rather than behind a link |
+| `documents<Service>Credentials` | no | key or secret shared with the service |
 
-Example for OnlyOffice:
+A service missing one of the first three keys is not offered, and the form says which one.
+
+For Memo, `documentsMemoCredentials` is the API key of an account, made from "My account"
+on that Memo. With it, Memo creates the board and it belongs to that account. Without it,
+the board comes into being on its first visit.
+
+## OnlyOffice
+
+The service name starts with `OnlyOffice`, and what follows picks the file type:
+`OnlyOfficeDocx`, `OnlyOfficeXlsx`, `OnlyOfficePptx`. With no suffix, it is a `docx`.
 
 ```php
-'documentsOnlyOfficeUrl' => 'https://onlyoffice.example.org',
-'documentsOnlyOfficeTitle' => 'Office document',
-'documentsOnlyOfficeDescription' => 'Word processor, spreadsheet, presentation',
-'documentsOnlyOfficeCredentials' => 'a-secret-of-at-least-32-characters',
+'documentsOnlyOfficeDocxUrl' => 'https://onlyoffice.example.org',
+'documentsOnlyOfficeDocxTitle' => 'Office document',
+'documentsOnlyOfficeDocxDescription' => 'Word processor',
+'documentsOnlyOfficeDocxIframe' => true,
+'documentsOnlyOfficeDocxCredentials' => 'a-secret-of-at-least-32-characters',
 ```
 
-The first three keys are required together: if one is missing the extension stops on an
-error message instead of half starting.
+The secret can also be set in `documentsCredentials`, per service:
+`'documentsCredentials' => ['onlyofficedocx' => '…']`. That one wins over
+`documents<Service>Credentials`.
 
-## The OnlyOffice secret must be at least 32 characters
+On creation, a blank file is copied into `files/` through the wiki's storage layer (an S3
+bucket works too), and OnlyOffice opens it from its public address.
 
-The token sent to OnlyOffice is signed with HS256. Since version 7 of
-`firebase/php-jwt`, a key shorter than the hash output is refused, so under 32 bytes for
-HS256. A shorter secret makes the document fail to display.
+### The secret must be at least 32 characters
 
-That constraint comes from the fix for a vulnerability in the library's version 6 line.
-Lengthening the secret, on both sides, is the only way forward.
+The token sent to OnlyOffice is signed with HS256. Since version 7 of `firebase/php-jwt`, a
+key under 32 bytes is refused and the document does not show. Lengthening the secret, on
+both sides, is the only fix.
 
-## Usage
+### The OnlyOffice callback
 
-Add the `documents` field to the bazar form. When an entry is created, the document is
-created on the service and attached to the entry.
+When a document has changed, the OnlyOffice server calls `/<Page>/onlyoffice?filename=…`
+so that the wiki rewrites the file. The callback is accepted only when:
 
-## The OnlyOffice callback
+- it is signed with the secret of a configured OnlyOffice service;
+- the download address it carries points at that same service's server;
+- the filename names an existing office file directly under `files/`.
 
-The OnlyOffice server calls `?onlyoffice&filename=…` when a document has been changed,
-so that the wiki rewrites the file.
-
-That callback is only accepted when it is signed with the
-`documentsCredentials['onlyoffice']` secret, when the download url it carries points at
-the configured OnlyOffice server, and when the filename names an existing file of the
-`files/` folder. Everything else is refused, and the JSON answer says why.
-
-This is why the secret has to be set on both sides: without it the callback is refused
-and documents stop saving.
+Any other callback is refused, and the JSON answer says why. So without a secret set on
+both sides, documents stop saving.

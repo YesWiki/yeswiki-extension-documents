@@ -2,103 +2,55 @@
 
 namespace YesWiki\Documents\Service;
 
-use Psr\Container\ContainerInterface;
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
-use YesWiki\Bazar\Service\EntryManager;
-use YesWiki\Bazar\Service\FormManager;
-use YesWiki\Bazar\Service\ListManager;
-use YesWiki\Wiki;
-
 use function Symfony\Component\String\u;
 
+use YesWiki\Render\Service\TemplateEngine;
+
+/** One kind of collaborative document: how it is created, and how it shows in a page. */
 abstract class DocumentProvider
 {
-    protected $params;
-    protected $services;
-    protected $entryManager;
-    protected $formManager;
-    protected $listManager;
-    protected $wiki;
+    public function __construct(protected TemplateEngine $templateEngine)
+    {
+    }
 
+    /** The name a configured service is matched against, `etherpad` for `documentsEtherpadUrl`. */
+    abstract public function providerName(): string;
 
-    public function __construct(
-        ParameterBagInterface $params,
-        ContainerInterface $services,
-        EntryManager $entryManager,
-        FormManager $formManager,
-        ListManager $listManager,
-        Wiki $wiki
-    ) {
-        $this->params = $params;
-        $this->services = $services;
-        $this->entryManager = $entryManager;
-        $this->formManager = $formManager;
-        $this->listManager = $listManager;
-        $this->wiki = $wiki;
+    /**
+     * The address of a new document for this entry.
+     *
+     * @param array<string, mixed> $docConfig
+     * @param array<string, mixed> $entry
+     */
+    abstract public function createDocument(array $docConfig, array $entry): string;
+
+    /** A slug of the title followed by a unique number, at most $maxSize characters. */
+    public function createDocumentId(string $title, int $maxSize = 255): string
+    {
+        $slug = (string)u($title)
+            ->ascii()
+            ->lower()
+            ->replaceMatches('/[^a-z0-9\s-]/', '')
+            ->replaceMatches('/\s+/', '_')
+            ->trim('_');
+        $uniqueId = time() . mt_rand(1000, 9999);
+        if (strlen($slug) > ($maxSize - 15)) {
+            $slug = substr($slug, 0, $maxSize - 15);
+        }
+
+        return $slug . '-' . $uniqueId;
     }
 
     /**
-     * Check if config input is good enough to be used by the DocumentProvider
-     * @param array $config
-     * @return array $config checked config
+     * The document itself, framed in the page or behind a link.
+     *
+     * @param array<string, mixed> $docConfig
      */
-    public function checkConfig(array $config)
+    public function showDocument(array $docConfig, string $documentUrl): string
     {
-        return $config;
-    }
-
-    public function createDocumentId($title, $maxSize = 255)
-    {
-        $slug = (string) u($title)
-               ->ascii()
-               ->lower()
-               ->replaceMatches('/[^a-z0-9\s-]/', '')
-               ->replaceMatches('/\s+/', '_')
-               ->trim('_');
-        $uniqueId = time() . mt_rand(1000, 9999);
-        if (strlen($slug) > ($maxSize - 15)) {
-            $slug = substr($slug, 0, ($maxSize - 15));
-        }
-        return $slug.'-'.$uniqueId;
-    }
-
-    public function createDocument(array $docConfig, array $entry)
-    {
-        return;
-    }
-
-    public function getDefaultInstance()
-    {
-        return [];
-    }
-
-    public function showDocument(array $data)
-    {
-        $docConfig = $data['docConfig'];
-        $documentUrl = $data['documentUrl'];
-        $this->wiki->AddCss('
-.document-full-width {
-  width: 100vw !important;
-  position: relative;
-  left: 50%;
-  right: 50%;
-  margin-left: -50vw;
-  margin-right: -50vw;
-  min-height:1000px;
-  border:none;
-  margin-bottom: 1em;
-}
-
-.panel .document-full-width {
-  width: 100% !important;
-  margin:0 0 1em 0 !important;
-  left: 0;
-  right: 0;
-}
-');
-        if ($docConfig['iframe'] === true) {
-            return "<iframe src='{$documentUrl}' class='document-full-width'></iframe>";
-        }
-        return "<a target='_blank' class='btn btn-primary btn-xs' href='{$documentUrl}'>"._t('DOCUMENTS_OPEN_DOCUMENT')."</a><br />";
+        return $this->templateEngine->render('@documents/document-frame.twig', [
+            'url' => $documentUrl,
+            'iframe' => ($docConfig['iframe'] ?? false) === true,
+        ]);
     }
 }

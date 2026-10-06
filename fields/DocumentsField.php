@@ -2,96 +2,97 @@
 
 namespace YesWiki\Documents\Field;
 
-use YesWiki\Bazar\Field\BazarField;
-use YesWiki\Documents\Service\DocumentsService;
 use Psr\Container\ContainerInterface;
+use YesWiki\Content\Attribute\Field;
+use YesWiki\Content\Field\BazarField;
+use YesWiki\Documents\Service\DocumentsService;
 
-/**
- * @Field({"documents"})
- */
+/** `documents`: the visitor picks a kind of document, and saving the entry creates it on that service. */
+#[Field(['documents'])]
 class DocumentsField extends BazarField
 {
-    protected $service = [];
-    protected $documentsType = [];
+    protected DocumentsService $documentsService;
 
     public function __construct(array $values, ContainerInterface $services)
     {
         parent::__construct($values, $services);
-        $this->service = $this->getService(DocumentsService::class);
+        $this->documentsService = $this->getService(DocumentsService::class);
     }
 
     protected function renderInput($entry)
     {
-        if (!empty($entry[$this->propertyName])) {
-          if (!empty($entry[$this->propertyName]['documentUrl'])) {
-            return "
-                <div class='control-group form-group input-text input text'>
-                    <label class='control-label col-sm-3'>" . _t('DOCUMENTS_LINK_ACCESS') . "</label>
-                    <div class='controls col-sm-9'>"._t('DOCUMENTS_URL').": {$entry[$this->propertyName]['documentUrl']}
-                    </div>
-                </div>";
+        $stored = $this->storedValue($entry);
+        if (isset($entry['tag']) && $stored['documentUrl'] !== '') {
+            return $this->render('@documents/document-link-input.twig', [
+                'url' => $stored['documentUrl'],
+            ]);
+        }
 
-          } else {
-            return '<div class="alert alert-danger">'._t('DOCUMENTS_URL_NOT_FOUND').'.</div>';
-          }
-        }
-        $options = [];
-        $services = $this->service->getAllDocumentsService();
-        foreach ($services as $key => $type) {
-            $options[$key] = "<h4>{$type['label']} <small> {$type['url']} </small> </h4>
-                                    <p>{$type['description']}</p>";
-        }
-        return $this->render('@documents/radio-document-types.twig', [
-            'options' => $options,
-            'value' => $this->getValue($entry),
-            'displayFilterLimit' => false
+        $services = $this->documentsService->getAllDocumentsService();
+
+        return $this->render('@documents/document-types-input.twig', [
+            'services' => $services,
+            'errors' => $this->documentsService->configErrors(),
+            'value' => $stored['documentType'],
         ]);
     }
 
     protected function renderStatic($entry)
     {
-      $services = $this->service->getAllDocumentsService();
-      return $this->service->showDocument(
-            $services[$entry[$this->propertyName]['documentType']] ?? null,
-            $entry ?? [],
-            $this->propertyName,
+        $services = $this->documentsService->getAllDocumentsService();
+
+        return $this->documentsService->showDocument(
+            $services[$this->storedValue($entry)['documentType']] ?? null,
+            is_array($entry) ? $entry : [],
+            (string)$this->propertyName,
         );
     }
 
     public function getValueStructure()
     {
-      return [$this->propertyName => [
-        'documentType' => ['_mode_' => 'single', '_type_' => 'string'],
-        'documentUrl' => ['_mode_' => 'single', '_type_' => 'string'],
-      ]
-      ];
+        return [$this->propertyName => [
+            'documentType' => ['_mode_' => 'single', '_type_' => 'string'],
+            'documentUrl' => ['_mode_' => 'single', '_type_' => 'string'],
+        ]];
     }
 
     public function formatValuesBeforeSave($entry)
     {
-        $documentTypeKey = $entry[$this->propertyName]['documentType'] ?? null;
+        $value = $this->storedValue($entry);
+        if ($value['documentUrl'] !== '' && isset($entry['tag']) && $this->isWebAddress($value['documentUrl'])) {
+            return [(string)$this->propertyName => $value];
+        }
+        $services = $this->documentsService->getAllDocumentsService();
+        if (!isset($services[$value['documentType']])) {
+            return [(string)$this->propertyName => ['documentType' => $value['documentType'], 'documentUrl' => '']];
+        }
 
-        // the document was already created
-        if (!empty($entry[$this->propertyName]['documentUrl'])) {
-            return $entry;
-        }
-        $services = $this->service->getAllDocumentsService();
-        if ($documentTypeKey && isset($services[$documentTypeKey])) {
-            $entry[$this->propertyName]['documentUrl'] = $this->service->createDocument(
-                $services[$documentTypeKey],
-                $entry
-            );
-        }
-        return $entry;
+        return [(string)$this->propertyName => [
+            'documentType' => $value['documentType'],
+            'documentUrl' => $this->documentsService->createDocument($services[$value['documentType']], is_array($entry) ? $entry : []),
+        ]];
     }
 
-    #[\ReturnTypeWillChange]
-    public function jsonSerialize()
+    /**
+     * The field's value, whatever was stored or submitted, as its two strings.
+     *
+     * @param array<string, mixed>|null $entry
+     *
+     * @return array{documentType: string, documentUrl: string}
+     */
+    protected function storedValue($entry): array
     {
-        return array_merge(
-            parent::jsonSerialize(),
-            [
-            ]
-        );
+        $value = $this->getValue($entry);
+        $value = is_array($value) ? $value : [];
+
+        return [
+            'documentType' => is_string($value['documentType'] ?? null) ? $value['documentType'] : '',
+            'documentUrl' => is_string($value['documentUrl'] ?? null) ? $value['documentUrl'] : '',
+        ];
+    }
+
+    private function isWebAddress(string $url): bool
+    {
+        return in_array(strtolower((string)parse_url($url, PHP_URL_SCHEME)), ['http', 'https'], true);
     }
 }
