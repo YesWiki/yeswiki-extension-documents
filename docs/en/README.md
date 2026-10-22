@@ -13,7 +13,21 @@ archived) and form 1500, "Documents collaboratifs". That form carries a `documen
 creating an entry means picking a kind of document, and saving the entry creates it on that
 service.
 
-The `documents` field can be added to any other form too, from the form builder.
+The `documents` field can be added to any other form too: it is in the form builder's
+palette, as "Collaborative document".
+
+## Choosing a field's document types
+
+In the form builder, the "Document types offered" setting lists the configured services,
+one checkbox each. A new field has all of them ticked.
+
+- Several ticked: whoever creates the entry picks one of those types.
+- One ticked: nothing is asked, and a document of that type is created when the entry is
+  saved.
+- None ticked: every configured service is offered. Form 1500 is set up this way.
+
+The setting is stored in the field's `document_types` key, for example
+`"document_types": "etherpad,memo"`.
 
 ## The `{{document}}` action
 

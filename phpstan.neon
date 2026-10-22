@@ -1,0 +1,28 @@
+# PHPStan for this extension, run from the YesWiki Ectoplasme checkout it is installed in:
+# ./vendor/bin/phpstan analyse -c extensions/documents/phpstan.neon --memory-limit=1G
+parameters:
+    level: 8
+
+    dynamicConstantNames:
+        - YW_CHARSET
+        - YESWIKI_PROGRAM_DIR
+        - YESWIKI_INSTANCE_DIR
+
+    paths:
+        - .
+
+    scanDirectories:
+        - %currentWorkingDirectory%/src
+        - %currentWorkingDirectory%/tests
+        - .
+
+    excludePaths:
+        analyseAndScan:
+            - vendor
+
+    bootstrapFiles:
+        - %currentWorkingDirectory%/phpstan/bootstrap.php
+        - vendor/autoload.php
+
+    stubFiles:
+        - %currentWorkingDirectory%/phpstan/symfony-container.stub

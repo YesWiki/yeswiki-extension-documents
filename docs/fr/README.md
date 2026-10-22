@@ -13,8 +13,22 @@ et le formulaire 1500, « Documents collaboratifs ». Ce formulaire porte un cha
 `documents` : à la création d'une fiche, on choisit le type de document, et
 l'enregistrement le crée sur le service choisi.
 
-Le champ `documents` s'ajoute aussi à n'importe quel autre formulaire, depuis le
-constructeur de formulaires.
+Le champ `documents` s'ajoute aussi à n'importe quel autre formulaire : il est dans la
+palette du constructeur de formulaires, sous le nom « Document collaboratif ».
+
+## Choisir les types de document d'un champ
+
+Dans le constructeur, le réglage « Types de document proposés » liste les services
+configurés, une case par service. Un nouveau champ les a toutes cochées.
+
+- Plusieurs cases cochées : la personne qui crée la fiche choisit parmi ces types.
+- Une seule case cochée : le choix n'est pas demandé, le document de ce type est créé à
+  l'enregistrement de la fiche.
+- Aucune case cochée : tous les services configurés sont proposés. C'est le cas du
+  formulaire 1500.
+
+Le réglage est enregistré dans la clé `document_types` du champ, par exemple
+`"document_types": "etherpad,memo"`.
 
 ## L'action `{{document}}`
 

@@ -14,6 +14,7 @@ return [
     'DOCUMENTS_CURL_ERROR' => 'cURL error while retrieving HedgeDoc URL. url: %{baseUrl}',
     'DOCUMENTS_MEMO_API_ERROR' => 'Memo did not make the board. url: %{baseUrl}, code: %{status}, reason: %{reason}',
     'DOCUMENTS_WRONG_NON_EXISTENT_FILENAME' => 'Wrong or non-existent filename : files/%{type}',
+    'DOCUMENTS_CREATED_ON_SAVE' => 'A "%{label}" document will be created when the entry is saved.',
     'DOCUMENTS_LINK_ACCESS' => 'Document access link',
     'DOCUMENTS_ACTION_TYPE_MISSING' => 'Document action: document type must be specified.',
     'DOCUMENTS_ACTION_INVALID_TYPE' => 'Document action: document type must be chosen from the following list: "%{doc}".',

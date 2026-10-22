@@ -15,6 +15,7 @@ return [
     'DOCUMENTS_CURL_ERROR' => 'Erreur cURL lors de la récupération de l\'URL HedgeDoc. url: %{baseUrl}',
     'DOCUMENTS_MEMO_API_ERROR' => 'Memo n\'a pas créé le tableau. url: %{baseUrl}, code: %{status}, raison: %{reason}',
     'DOCUMENTS_WRONG_NON_EXISTENT_FILENAME' => 'Nom de fichier incorrect ou inexistant : files/%{type}',
+    'DOCUMENTS_CREATED_ON_SAVE' => 'Un document « %{label} » sera créé à l\'enregistrement de la fiche.',
     'DOCUMENTS_LINK_ACCESS' => 'Lien d\'accès au document',
     'DOCUMENTS_ACTION_TYPE_MISSING' => 'Action document: il faut préciser un type de document obligatoirement.',
     'DOCUMENTS_ACTION_INVALID_TYPE' => 'Action document: le type de document doit être choisi parmi la liste suivante : "%{doc}".',

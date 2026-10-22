@@ -7,6 +7,7 @@ use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\Request;
 use YesWiki\Content\Entity\PageBody;
 use YesWiki\Content\Service\EntryManager;
+use YesWiki\Content\Service\FormBuilderExtensions;
 use YesWiki\Content\Service\FormManager;
 use YesWiki\Content\Service\ListManager;
 use YesWiki\Content\Service\PageManager;
@@ -153,6 +154,48 @@ class DocumentsTest extends YesWikiTestCase
         $this->assertStringContainsString('yw-form-group', $html);
     }
 
+    public function testTheFieldOffersOnlyTheTypesItAllows(): void
+    {
+        $field = $this->documentsField($this->createForm('etherpad,memo'));
+
+        $html = $field->renderInputIfPermitted(null);
+
+        $this->assertSame(['etherpad', 'memo'], $field->getDocumentTypes());
+        $this->assertStringContainsString('value="etherpad"', $html);
+        $this->assertStringContainsString('value="memo"', $html);
+        $this->assertStringNotContainsString('value="hedgedoc"', $html);
+    }
+
+    public function testAFieldAllowingOneTypeCreatesItWithoutAsking(): void
+    {
+        $field = $this->documentsField($this->createForm('etherpad'));
+
+        $html = $field->renderInputIfPermitted(null);
+        $saved = $field->formatValuesBeforeSave(['bf_titre' => 'Compte rendu', 'bf_documents' => []]);
+
+        $this->assertStringContainsString('type="hidden" name="bf_documents[documentType]" value="etherpad"', $html);
+        $this->assertStringNotContainsString('type="radio"', $html);
+        $this->assertSame('etherpad', $saved['bf_documents']['documentType']);
+        $this->assertStringStartsWith('https://pad.yeswiki.net/p/compte_rendu-', $saved['bf_documents']['documentUrl']);
+    }
+
+    public function testAFieldRefusesATypeItDoesNotAllow(): void
+    {
+        $field = $this->documentsField($this->createForm('etherpad,memo'));
+
+        $saved = $field->formatValuesBeforeSave(['bf_titre' => 'Notes', 'bf_documents' => ['documentType' => 'hedgedoc']]);
+
+        $this->assertSame('', $saved['bf_documents']['documentUrl']);
+    }
+
+    public function testTheFormBuilderGetsTheFieldScriptAndTheConfiguredServices(): void
+    {
+        $designer = $this->getWiki()->services->get(FormBuilderExtensions::class)->forDesigner();
+
+        $this->assertContains('extensions/documents/javascripts/form-builder-documents.js', $designer['scripts']);
+        $this->assertSame('Document pad collaboratif', $designer['data']['documents']['services']['etherpad'] ?? null);
+    }
+
     public function testTheActionShowsTheDocumentOfAnEntry(): void
     {
         $services = $this->getWiki()->services;
@@ -282,7 +325,7 @@ class DocumentsTest extends YesWikiTestCase
         return $migration;
     }
 
-    private function createForm(): string
+    private function createForm(string $documentTypes = ''): string
     {
         $forms = $this->getWiki()->services->get(FormManager::class);
         $formId = (string)$forms->findNewId();
@@ -292,7 +335,7 @@ class DocumentsTest extends YesWikiTestCase
             'template' => [
                 ['type' => 'texte', 'name' => 'bf_titre', 'label' => 'Titre', 'required' => '1'],
                 ['type' => 'texte', 'name' => 'bf_statut', 'label' => 'Statut'],
-                ['type' => 'documents', 'name' => 'bf_documents', 'label' => 'Document'],
+                ['type' => 'documents', 'name' => 'bf_documents', 'label' => 'Document'] + ($documentTypes === '' ? [] : ['document_types' => $documentTypes]),
             ],
             'entry_title_template' => '{{bf_titre}}',
         ]);

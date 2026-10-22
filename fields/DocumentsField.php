@@ -7,16 +7,39 @@ use YesWiki\Content\Attribute\Field;
 use YesWiki\Content\Field\BazarField;
 use YesWiki\Documents\Service\DocumentsService;
 
-/** `documents`: the visitor picks a kind of document, and saving the entry creates it on that service. */
+/** `documents`: the visitor picks a kind of document among those the field allows, and saving the entry creates it on that service. */
 #[Field(['documents'])]
 class DocumentsField extends BazarField
 {
+    protected const FIELD_DOCUMENT_TYPES = 6;
+
     protected DocumentsService $documentsService;
+
+    /** @var list<string> */
+    protected array $documentTypes;
 
     public function __construct(array $values, ContainerInterface $services)
     {
         parent::__construct($values, $services);
         $this->documentsService = $this->getService(DocumentsService::class);
+        $this->documentTypes = array_values(array_filter(array_map('trim', explode(',', (string)($values[self::FIELD_DOCUMENT_TYPES] ?? '')))));
+    }
+
+    /** @return list<string> the service keys this field allows, every configured one when it names none */
+    public function getDocumentTypes(): array
+    {
+        return $this->documentTypes;
+    }
+
+    /** @return array<string, array<string, mixed>> the configured services this field offers */
+    public function allowedServices(): array
+    {
+        $services = $this->documentsService->getAllDocumentsService();
+        if ($this->documentTypes === []) {
+            return $services;
+        }
+
+        return array_intersect_key($services, array_flip($this->documentTypes));
     }
 
     protected function renderInput($entry)
@@ -28,12 +51,12 @@ class DocumentsField extends BazarField
             ]);
         }
 
-        $services = $this->documentsService->getAllDocumentsService();
+        $services = $this->allowedServices();
 
         return $this->render('@documents/document-types-input.twig', [
             'services' => $services,
             'errors' => $this->documentsService->configErrors(),
-            'value' => $stored['documentType'],
+            'value' => count($services) === 1 ? (string)array_key_first($services) : $stored['documentType'],
         ]);
     }
 
@@ -62,7 +85,10 @@ class DocumentsField extends BazarField
         if ($value['documentUrl'] !== '' && isset($entry['tag']) && $this->isWebAddress($value['documentUrl'])) {
             return [(string)$this->propertyName => $value];
         }
-        $services = $this->documentsService->getAllDocumentsService();
+        $services = $this->allowedServices();
+        if (count($services) === 1) {
+            $value['documentType'] = (string)array_key_first($services);
+        }
         if (!isset($services[$value['documentType']])) {
             return [(string)$this->propertyName => ['documentType' => $value['documentType'], 'documentUrl' => '']];
         }
@@ -73,14 +99,8 @@ class DocumentsField extends BazarField
         ]];
     }
 
-    /**
-     * The field's value, whatever was stored or submitted, as its two strings.
-     *
-     * @param array<string, mixed>|null $entry
-     *
-     * @return array{documentType: string, documentUrl: string}
-     */
-    protected function storedValue($entry): array
+    /** @return array{documentType: string, documentUrl: string} the field's value, whatever was stored or submitted */
+    protected function storedValue(mixed $entry): array
     {
         $value = $this->getValue($entry);
         $value = is_array($value) ? $value : [];
