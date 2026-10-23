@@ -119,12 +119,12 @@ class DocumentsService
     }
 
     /**
-     * The entry's document with its title, status and edit link.
+     * The entry's document, with its title, status and edit link when shown outside the entry.
      *
      * @param array<string, mixed>|null $docConfig
      * @param array<string, mixed>      $entry
      */
-    public function showDocument(?array $docConfig, array $entry, string $fieldId): string
+    public function showDocument(?array $docConfig, array $entry, string $fieldId, bool $withMeta = true): string
     {
         $documentUrl = $entry[$fieldId]['documentUrl'] ?? null;
         if (empty($documentUrl) || !is_string($documentUrl)) {
@@ -135,8 +135,14 @@ class DocumentsService
             return $this->alert('danger', _t('DOCUMENTS_UNSUPPORTED_SERVICE', ['service' => (string)($entry[$fieldId]['documentType'] ?? '')]));
         }
 
+        $document = $provider->showDocument($docConfig, $documentUrl);
+        if (!$withMeta) {
+            return $this->templateEngine->render('@documents/document.twig', ['document' => $document, 'withMeta' => false]);
+        }
+
         return $this->templateEngine->render('@documents/document.twig', [
-            'document' => $provider->showDocument($docConfig, $documentUrl),
+            'document' => $document,
+            'withMeta' => true,
             'url' => $documentUrl,
             'title' => (string)($entry['title'] ?? $entry['bf_titre'] ?? _t('DOCUMENTS_UNKNOWN_TITLE')),
             'label' => (string)$docConfig['label'],

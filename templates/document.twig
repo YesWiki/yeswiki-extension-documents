@@ -1,9 +1,11 @@
 {{ include_css('extensions/documents/styles/documents.css') }}
 <div class="documents-document">
   {{ document|raw }}
+  {% if withMeta %}
   <p class="documents-document__meta">
     <a target="_blank" rel="noopener" href="{{ url }}"><strong>{{ title }}</strong></a>
     ({{ label }} - {{ _t('DOCUMENTS_STATUS') }} : {{ status }})
     {% if editUrl %}<a href="{{ editUrl }}">{{ _t('DOCUMENTS_MODIFY') }}</a>{% endif %}
   </p>
+  {% endif %}
 </div>

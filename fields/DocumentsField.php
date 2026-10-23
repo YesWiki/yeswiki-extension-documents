@@ -6,6 +6,7 @@ use Psr\Container\ContainerInterface;
 use YesWiki\Content\Attribute\Field;
 use YesWiki\Content\Field\BazarField;
 use YesWiki\Documents\Service\DocumentsService;
+use YesWiki\Kernel\Service\PageContext;
 
 /** `documents`: the visitor picks a kind of document among those the field allows, and saving the entry creates it on that service. */
 #[Field(['documents'])]
@@ -63,11 +64,14 @@ class DocumentsField extends BazarField
     protected function renderStatic($entry)
     {
         $services = $this->documentsService->getAllDocumentsService();
+        $entry = is_array($entry) ? $entry : [];
+        $onEntryPage = isset($entry['tag']) && $this->getService(PageContext::class)->getRequestedTag() === $entry['tag'];
 
         return $this->documentsService->showDocument(
             $services[$this->storedValue($entry)['documentType']] ?? null,
-            is_array($entry) ? $entry : [],
+            $entry,
             (string)$this->propertyName,
+            !$onEntryPage,
         );
     }
 
